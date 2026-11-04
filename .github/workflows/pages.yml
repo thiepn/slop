@@ -1,0 +1,57 @@
+name: Deploy SLOPOCALYPSE to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Validate 44-page static site
+        run: |
+          python3 - <<'PYVALIDATE'
+          from pathlib import Path
+          root = Path('.')
+          pages = sorted(root.glob('*.html'))
+          assert len(pages) == 44, f'Expected 44 HTML pages, got {len(pages)}'
+          assert (root/'index.html').is_file()
+          for p in pages:
+              assert p.stat().st_size, f'Empty page: {p}'
+          print('Validated 44 HTML pages and index.html')
+          PYVALIDATE
+
+      - name: Assemble public site
+        run: |
+          mkdir -p _site
+          find . -maxdepth 1 -type f \( -name '*.html' -o -name '*.css' -o -name '*.js' \) -exec cp {} _site/ \;
+          touch _site/.nojekyll
+          test "$(find _site -maxdepth 1 -name '*.html' | wc -l)" -eq 44
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
