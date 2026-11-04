@@ -45,3 +45,32 @@
 ## Release disposition
 
 **Draft PR / human review pending.** `main`, GitHub Pages deployment, existing storage schemas and all 44 original HTML files are unchanged. Do not merge/deploy until desired review and native same-origin acceptance are complete.
+
+## Draft PR #1 hardening continuation (2026-11-04)
+
+**Source of truth:** existing draft PR #1, starting exact head `1e19e487d443b3a57aca1718c85f050aa75a8769`, main `c2d7e3c11076f046b77f5e4354dc51bda9cbdcc7`. No merge or production deployment authorized. All 44 HTML pages and the GitHub Pages workflow remain unchanged.
+
+### Reproduced defects and corrections
+
+1. **Lost form drafts and keyboard focus:** While the Save Slots tab was open, typing `My unfinished typing` and causing a separate legacy `SlopWorld.announce()` update replaced the input with `Checkpoint 1`, cleared the draft and removed focus. `render()` now preserves a focused input's draft, caret, and keyboard focus across simulated world updates, and restores stable focus after action re-renders.
+2. **Changing the deterministic seed after starting play:** A user could start the Cloud campaign and then successfully switch seeds before taking the first decision. The seed could also be changed after one simulated hour without an event. Re-seeding now requires a world without begun campaigns or advanced time. Validation failures preserve existing state and report a specific reason.
+3. **Checkpoint RNG/seed mismatch:** Old slots saved the pseudorandom state but not the matching seed. Saving a new slot now records the seed; loading it restores both. When a user changes seed, old Phase 4.0 slots that lack a seed are updated in place to retain their previously active seed. Old slots remain loadable. Historic slots whose seed had *already* been changed by a prior build cannot be reconstructed with certainty.
+4. **Checkpoint erasing historical discoveries (introduced while adding ending discovery):** Replaying to a second ending and then loading an earlier checkpoint lost the endings archive. Checkpoint loads now preserve discovered endings and the historical completion counter while rewinding the current story, RNG and citizens. Credits and past news/mail are not reversed.
+
+### Gameplay and accessibility improvements
+
+- Every completed campaign now tracks its unique discovered endings (three possibilities per campaign) without granting duplicate completion rewards. The story view shows found endings and masks undiscovered outcomes; replay preserves discoveries.
+- Decision history displays authored decision labels and headlines rather than only internal node/option IDs.
+- The modal's background and global launcher are inert while open and restored to their prior state on close. Its four tabs now control an explicitly labelled tabpanel; keyboard focus returns to the launcher on Escape.
+- No new top-level storage keys, no changed backup checksum format, no backend, no new page, and no edits to legacy 2.0/3.0 engines.
+
+### Executed qualification on the final source
+
+- `python tests/phase40_qualification.py`: **54 / 54 PASS** in headless Chromium DOM via in-memory storage/lock harness (existing suite).
+- `python tests/phase40_hardening.py`: **42 / 42 PASS** in the same harness (new targeted real-browser regression suite). Checks include draft/focus restoration; tab semantics and inert background; legacy slot migration; seed locking; two distinct endings; repeat-reward protection; checkpoint discoveries; four-store backup validation; cross-page hydration; quota rollback; and no uncaught JS exceptions.
+- `python tests/phase40_responsive.py` run in four page batches: **176 / 176 PASS** across 44 pages and widths 320, 390, 768, 1440 px. No observed overflow or JavaScript exceptions in initial page states.
+- `node --check s40-world.js`, `node --check s31-core.js`: **PASS**. Static source preservation: 44/44 existing HTML files unmodified; initial PR loader `s31-core.js` unmodified during this continuation.
+
+### Limits / remaining gates
+
+The in-memory Chromium harness uses actual JavaScript and DOM but simulated `localStorage` and Web Locks. It does not verify native origin/session persistence, true concurrent tabs, BroadcastChannel cross-tab ordering, Firefox/WebKit, physical-device accessibility, or real screen readers. The old v2/v3 cross-store projection outbox remains a retryable best-effort mechanism rather than an atomic distributed transaction. The GitHub Pages workflow only runs on `main`; this draft must not be merged or deployed until explicitly authorized.
