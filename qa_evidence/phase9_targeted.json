@@ -1,0 +1,174 @@
+{
+  "method": "Chromium 144 DOM + explicit in-memory localStorage test double; not real same-origin multi-tab Web Locks",
+  "tests": [
+    {
+      "name": "900-event external replay rejected",
+      "passed": true,
+      "detail": {
+        "first": true,
+        "second": false,
+        "once": 7,
+        "again": 7,
+        "externalCount": 901,
+        "seen": 600,
+        "events": 160
+      }
+    },
+    {
+      "name": "durable external acknowledgements bounded",
+      "passed": true,
+      "detail": {
+        "first": true,
+        "second": false,
+        "once": 7,
+        "again": 7,
+        "externalCount": 901,
+        "seen": 600,
+        "events": 160
+      }
+    },
+    {
+      "name": "backup carries v32 external acknowledgements",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "idempotency survives browser page reload",
+      "passed": true,
+      "detail": {
+        "first": true,
+        "second": false,
+        "externalCount": 901
+      }
+    },
+    {
+      "name": "full backup still validates after stress",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "backup restore preserves external event idempotency",
+      "passed": true,
+      "detail": {
+        "replay": false,
+        "preview": {
+          "credits": 1200,
+          "cascades": 0,
+          "claimed": 0,
+          "ledger": 160
+        }
+      }
+    },
+    {
+      "name": "quota failure does not manufacture external event",
+      "passed": true,
+      "detail": {
+        "thrown": true,
+        "phantom": false,
+        "persisted": false
+      }
+    },
+    {
+      "name": "backup checksum manipulation rejected",
+      "passed": true,
+      "detail": {
+        "rejected": true
+      }
+    },
+    {
+      "name": "Phase 8 ledger migrates recent external markers without schema change",
+      "passed": true,
+      "detail": {
+        "migrated": true,
+        "res": false
+      }
+    },
+    {
+      "name": "failed coin purchase leaves wallet, tokens and receipts unchanged",
+      "passed": true,
+      "detail": {
+        "credits": 1200,
+        "holdings": 0,
+        "transactions": 0,
+        "receipt": "Trade not saved. Your fictional credits and tokens were not moved."
+      }
+    },
+    {
+      "name": "successful buy/sell updates balances and receipt together",
+      "passed": true,
+      "detail": {
+        "buy": {
+          "credits": 1192,
+          "tokens": 1,
+          "receipts": 1
+        },
+        "sell": {
+          "credits": 1208,
+          "tokens": 0,
+          "receipts": 2
+        }
+      }
+    },
+    {
+      "name": "three-second idle plus new page retains fictional content",
+      "passed": true,
+      "detail": {
+        "elapsedSeconds": 3.35,
+        "fact": true,
+        "bar": true
+      }
+    },
+    {
+      "name": "Chromium exposes interactive controls in native accessibility tree",
+      "passed": true,
+      "detail": {
+        "roles": [
+          "InlineTextBox",
+          "LabelText",
+          "LineBreak",
+          "MenuListPopup",
+          "RootWebArea",
+          "StaticText",
+          "article",
+          "banner",
+          "button",
+          "combobox",
+          "contentinfo",
+          "generic",
+          "heading",
+          "link",
+          "main",
+          "navigation",
+          "none",
+          "option",
+          "paragraph",
+          "region",
+          "searchbox",
+          "sectionheader",
+          "status",
+          "strong"
+        ],
+        "named": 395
+      }
+    },
+    {
+      "name": "keyboard launcher focus, dialog semantics, Escape close",
+      "passed": true,
+      "detail": {
+        "opened": {
+          "open": true,
+          "role": "dialog",
+          "modal": "true",
+          "focus": true
+        },
+        "closed": true
+      }
+    }
+  ],
+  "passed": 14,
+  "failed": 0,
+  "pageErrors": [],
+  "browser": "/usr/bin/chromium",
+  "nativeRuntime": "see phase9_native_runtime.json",
+  "idleDuration": 3
+}

@@ -1,0 +1,3 @@
+# Phase 10 — Real-Origin Qualification and Concurrency Repair
+
+Use Phase 9 ZIP as baseline. Preserve all 44 pages and all Phase 1–9 functionality. First run the included `tests/native_qualification.py` on a machine that permits native localhost navigation, with Chromium/Firefox/WebKit installed. Investigate any genuinely reproduced Web Locks, BroadcastChannel, race, backup, idle/resume, keyboard, or screen-reader defects; fix only those with evidence. Evaluate bounded external event acknowledgement after >4096 unique events before claiming lifetime idempotency. Do not fabricate native test outcomes. Preserve storage and backup compatibility, deliver a complete ZIP, QA record, and a continuation button.

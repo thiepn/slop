@@ -1,0 +1,125 @@
+{
+  "baselineSha256": "d5d6d984ae0dcfe77576a4f09f84a3c3f5357353ea2185c72847d36360157d9e",
+  "browser": "Chromium 144.0.7559.96 (headless Debian)",
+  "environment": "Chromium page.set_content with localStorage test double, browser navigation to http://127.0.0.1:8765 blocked by administrator policy",
+  "focusedUnique": 15,
+  "focusedRuns": 4,
+  "focusedAssertionsPassed": 60,
+  "responsive": {
+    "passed": 176,
+    "total": 176,
+    "widths": [
+      320,
+      390,
+      768,
+      1440
+    ]
+  },
+  "accessibilitySample": {
+    "pages": 9,
+    "buttons": 209,
+    "formControls": 36,
+    "unlabeled": 0
+  },
+  "static": {
+    "html": 44,
+    "baselineFiles": 87,
+    "unchanged": 83,
+    "changed": [
+      "slopocalypse_site/s2-apps.js",
+      "slopocalypse_site/s2-world.js",
+      "slopocalypse_site/s3-world.js",
+      "slopocalypse_site/s32-world.js"
+    ],
+    "removed": [],
+    "references": 3396,
+    "missingReferences": [],
+    "missingFragments": [],
+    "externalDependencies": []
+  },
+  "focusedCases": [
+    {
+      "name": "625-event idempotency: no duplicate citation collectible",
+      "ok": true,
+      "detail": "{'before': 1, 'after': 1, 'persisted': True, 'seen': 600, 'events': 160, 'inventory': 1}"
+    },
+    {
+      "name": "durable source acknowledgement bounded",
+      "ok": true,
+      "detail": "{'before': 1, 'after': 1, 'persisted': True, 'seen': 600, 'events': 160, 'inventory': 1}"
+    },
+    {
+      "name": "no runtime errors in long session",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "verified backup contains source acknowledgements",
+      "ok": true,
+      "detail": "{'version': 2, 'sourceSeen': 2, 'blocked': True, 'preview': {'credits': 1200, 'cascades': 0, 'claimed': 0, 'ledger': 160}}"
+    },
+    {
+      "name": "tampered backup is rejected",
+      "ok": true,
+      "detail": "{'version': 2, 'sourceSeen': 2, 'blocked': True, 'preview': {'credits': 1200, 'cascades': 0, 'claimed': 0, 'ledger': 160}}"
+    },
+    {
+      "name": "legacy installation write failure is not reported as success",
+      "ok": true,
+      "detail": "{'installedReturn': False, 'installed': False, 'factReturn': None, 'hasFact': False}"
+    },
+    {
+      "name": "legacy failed hallucination does not create a phantom fact",
+      "ok": true,
+      "detail": "{'installedReturn': False, 'installed': False, 'factReturn': None, 'hasFact': False}"
+    },
+    {
+      "name": "failed ad write restores wallet and society",
+      "ok": true,
+      "detail": "{'ok': False, 'reason': 'No credits charged. Fictional advertisement could not be saved.', 'credits': 1200, 'starting': 1200, 'ads': 0, 'persistedAds': 0, 'journal': None}"
+    },
+    {
+      "name": "successful ad charges exactly once and persists",
+      "ok": true,
+      "detail": "{'ok': True, 'charge': 71, 'ads': 1, 'persistedAds': 1, 'journal': None}"
+    },
+    {
+      "name": "interrupted ad journal recovers both stores after reload",
+      "ok": true,
+      "detail": "{'journal': None, 'credits': 1129, 'ads': ['sc-mw1alt8g-1']}"
+    },
+    {
+      "name": "full four-store backup import restores wallet in memory",
+      "ok": true,
+      "detail": "{'credits': 1200, 'before': 1200, 'preview': {'credits': 1200, 'cascades': 0, 'claimed': 0, 'ledger': 1}, 'world': True}"
+    },
+    {
+      "name": "failed restore rolls back without damaging wallet",
+      "ok": true,
+      "detail": "{'rejected': True, 'unchanged': True, 'wal': 1200, 'journal': None}"
+    },
+    {
+      "name": "UTF-8 near-quota oversized import rejected",
+      "ok": true,
+      "detail": "{'rejected': True, 'error': 'Backup exceeds 3 MB.'}"
+    },
+    {
+      "name": "focused visible controls have accessible names",
+      "ok": true,
+      "detail": "{'buttons': 12, 'unnamedButtons': 0, 'inputs': 6, 'unlabeled': [], 'center': 'dialog'}"
+    },
+    {
+      "name": "launcher dialog opens with focus and closes on Escape",
+      "ok": true,
+      "detail": "{'open': True, 'modal': 'true', 'focus': True}"
+    }
+  ],
+  "limitations": [
+    "Native Web Locks and BroadcastChannel between real same-origin tabs: NOT TESTED (browser navigation blocked)",
+    "Real HTTP origin browser navigation: BLOCKED (curl succeeded)",
+    "Firefox and WebKit: unavailable locally",
+    "Screen reader and physical device: NOT TESTED",
+    "Only 625-event accelerated stress, not a multi-hour session",
+    "Several legacy multi-key writes remain non-atomic under true simultaneous tabs"
+  ]
+}

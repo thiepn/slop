@@ -1,0 +1,15 @@
+{
+  "browser": "/usr/bin/chromium",
+  "method": "Chromium DOM with in-memory localStorage; NOT native HTTP-origin",
+  "pages": 44,
+  "widths": [
+    320,
+    390,
+    768,
+    1440
+  ],
+  "passed": 176,
+  "total": 176,
+  "errors": [],
+  "durationSeconds": 10.56
+}

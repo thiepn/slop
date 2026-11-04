@@ -1,0 +1,34 @@
+{
+  "html_pages": 44,
+  "local_refs_checked": 3344,
+  "fragments_checked": 108,
+  "issues": [],
+  "baseline_files": 75,
+  "unchanged_files": 58,
+  "changed": [
+    "PHASE6_NEXT.md",
+    "README.txt",
+    "agents.html",
+    "awards.html",
+    "careers.html",
+    "community.html",
+    "docs.html",
+    "generator.html",
+    "integrations.html",
+    "investors.html",
+    "merch.html",
+    "newsroom.html",
+    "pricing-verse.html",
+    "s31-core.js",
+    "s32-world.js",
+    "support.html",
+    "workspace.html"
+  ],
+  "missing_baseline_files": [],
+  "added": [
+    "PHASE7_NEXT.md",
+    "QA_3_1_PHASE6.md",
+    "s36-legacy.css",
+    "s36-legacy.js"
+  ]
+}

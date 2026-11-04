@@ -28,6 +28,7 @@ jobs:
         run: |
           python3 - <<'PYVALIDATE'
           from pathlib import Path
+          from html.parser import HTMLParser
           root = Path('.')
           pages = sorted(root.glob('*.html'))
           assert len(pages) == 44, f'Expected 44 HTML pages, got {len(pages)}'

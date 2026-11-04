@@ -1,0 +1,31 @@
+{
+  "started": "2026-11-03T23:13:54.652287+00:00",
+  "url": "http://127.0.0.1:45119",
+  "originType": "real local HTTP",
+  "idleSeconds": 1.0,
+  "tests": [
+    {
+      "name": "chromium real HTTP origin",
+      "status": "BLOCKED",
+      "detail": "Page.goto: net::ERR_BLOCKED_BY_ADMINISTRATOR at http://127.0.0.1:45119/slopos.html\nCall log:\n  - navigating to \"http://127.0.0.1:45119/slopos.html\", waiting until \"domcontentloaded\"\n"
+    },
+    {
+      "name": "firefox launch",
+      "status": "UNAVAILABLE",
+      "detail": "BrowserType.launch: Executable doesn't exist at /home/oai/.cache/ms-playwright/firefox-1497/firefox/firefox\n\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557\n\u2551 Looks like Playwright was just installed or updated.       \u2551\n\u2551 Please run the following command to download new browsers: \u2551\n\u2551                                                    "
+    },
+    {
+      "name": "webkit launch",
+      "status": "UNAVAILABLE",
+      "detail": "BrowserType.launch: Executable doesn't exist at /home/oai/.cache/ms-playwright/webkit-2227/pw_run.sh\n\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557\n\u2551 Looks like Playwright was just installed or updated.       \u2551\n\u2551 Please run the following command to download new browsers: \u2551\n\u2551                                                           "
+    }
+  ],
+  "note": "BLOCKED/UNAVAILABLE are not passes. No UI source changes required to run this optional qualification script.",
+  "finished": "2026-11-03T23:13:55.734436+00:00",
+  "counts": {
+    "PASS": 0,
+    "FAIL": 0,
+    "BLOCKED": 1,
+    "UNAVAILABLE": 2
+  }
+}

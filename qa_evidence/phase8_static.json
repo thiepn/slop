@@ -1,0 +1,16 @@
+{
+  "html": 44,
+  "baselineFiles": 87,
+  "unchanged": 83,
+  "changed": [
+    "slopocalypse_site/s2-apps.js",
+    "slopocalypse_site/s2-world.js",
+    "slopocalypse_site/s3-world.js",
+    "slopocalypse_site/s32-world.js"
+  ],
+  "removed": [],
+  "references": 3396,
+  "missingReferences": [],
+  "missingFragments": [],
+  "externalDependencies": []
+}

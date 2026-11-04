@@ -1,0 +1,74 @@
+[
+  {
+    "buttons": 34,
+    "blank": 0,
+    "fields": 9,
+    "unlabeled": [],
+    "page": "index.html",
+    "errors": []
+  },
+  {
+    "buttons": 12,
+    "blank": 0,
+    "fields": 6,
+    "unlabeled": [],
+    "page": "generator.html",
+    "errors": []
+  },
+  {
+    "buttons": 28,
+    "blank": 0,
+    "fields": 4,
+    "unlabeled": [],
+    "page": "slopos.html",
+    "errors": []
+  },
+  {
+    "buttons": 17,
+    "blank": 0,
+    "fields": 3,
+    "unlabeled": [],
+    "page": "slopsearch.html",
+    "errors": []
+  },
+  {
+    "buttons": 11,
+    "blank": 0,
+    "fields": 7,
+    "unlabeled": [],
+    "page": "slopads.html",
+    "errors": []
+  },
+  {
+    "buttons": 51,
+    "blank": 0,
+    "fields": 5,
+    "unlabeled": [],
+    "page": "slopbook.html",
+    "errors": []
+  },
+  {
+    "buttons": 31,
+    "blank": 0,
+    "fields": 0,
+    "unlabeled": [],
+    "page": "slopcaptcha.html",
+    "errors": []
+  },
+  {
+    "buttons": 10,
+    "blank": 0,
+    "fields": 1,
+    "unlabeled": [],
+    "page": "slopcourt.html",
+    "errors": []
+  },
+  {
+    "buttons": 15,
+    "blank": 0,
+    "fields": 1,
+    "unlabeled": [],
+    "page": "portal.html",
+    "errors": []
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "baselineSha256": "338c667a417bf4cd274d0b4a8b26457843c38e72e1fa865aedb8811ad7be8860",
+  "baselineFiles": 92,
+  "htmlPages": 44,
+  "unchangedBaselineFiles": 90,
+  "modifiedBaselineFiles": [
+    "slopocalypse_site/s2-apps.js",
+    "slopocalypse_site/s32-world.js"
+  ],
+  "removedBaselineFiles": [],
+  "localRefsChecked": 3396,
+  "missingRelativeRefs": [],
+  "badFragments": [],
+  "remoteRefs": []
+}

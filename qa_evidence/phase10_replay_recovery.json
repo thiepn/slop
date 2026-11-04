@@ -1,0 +1,157 @@
+{
+  "tests": [
+    {
+      "name": "4105 new events do not replay an evicted old event",
+      "pass": true,
+      "details": {
+        "one": true,
+        "two": false,
+        "before": 5,
+        "after": 5,
+        "exact": 4096,
+        "filterBytes": 65536,
+        "ledger": 160
+      }
+    },
+    {
+      "name": "bounded readable ledger with 64-KiB replay filter",
+      "pass": true,
+      "details": {
+        "one": true,
+        "two": false,
+        "before": 5,
+        "after": 5,
+        "exact": 4096,
+        "filterBytes": 65536,
+        "ledger": 160
+      }
+    },
+    {
+      "name": "backup with replay filter validates and remains below size cap",
+      "pass": true,
+      "details": {
+        "backupBytes": 255036
+      }
+    },
+    {
+      "name": "reload keeps replay protection",
+      "pass": true,
+      "details": {
+        "result": false,
+        "count": 4096,
+        "influence": 5
+      }
+    },
+    {
+      "name": "failed storage write cannot produce phantom replay acknowledgement",
+      "pass": true,
+      "details": {
+        "failed": true,
+        "memory": false,
+        "disk": false
+      }
+    },
+    {
+      "name": "failed event remains retryable",
+      "pass": true,
+      "details": {
+        "accepted": true,
+        "seen": true
+      }
+    },
+    {
+      "name": "backup roundtrip retains old event but discards later changes",
+      "pass": true,
+      "details": {
+        "preview": {
+          "credits": 1200,
+          "cascades": 0,
+          "claimed": 0,
+          "ledger": 160
+        },
+        "duplicate": false,
+        "retry": true
+      }
+    },
+    {
+      "name": "checksum tampering rejected",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "Phase 9 ledger migrates without losing old acknowledgement or credits",
+      "pass": true,
+      "details": {
+        "old": false,
+        "new": true,
+        "hasFilter": 87384,
+        "credits": 1200,
+        "influence": 44
+      }
+    },
+    {
+      "name": "interrupted restore journal rolls back on next load",
+      "pass": true,
+      "details": {
+        "credits": 1200,
+        "journal": null,
+        "recovered": true,
+        "stored": 1200
+      }
+    },
+    {
+      "name": "near-quota new event fails without phantom effects",
+      "pass": true,
+      "details": {
+        "failed": true,
+        "phantom": false,
+        "durable": false,
+        "storageBytes": 126887
+      }
+    },
+    {
+      "name": "keyboard open, focus, and Escape dismissal",
+      "pass": true,
+      "details": {
+        "visible": true,
+        "role": "dialog",
+        "modal": "true",
+        "focused": true
+      }
+    },
+    {
+      "name": "Chromium accessibility tree exposes named interactive elements",
+      "pass": true,
+      "details": {
+        "roles": [
+          "InlineTextBox",
+          "LabelText",
+          "LineBreak",
+          "RootWebArea",
+          "StaticText",
+          "article",
+          "banner",
+          "button",
+          "combobox",
+          "contentinfo",
+          "generic",
+          "group",
+          "heading",
+          "link",
+          "main",
+          "navigation",
+          "none",
+          "paragraph",
+          "searchbox",
+          "status"
+        ],
+        "named": 239
+      }
+    }
+  ],
+  "passed": 13,
+  "failed": 0,
+  "pageErrors": [],
+  "method": "Chromium real DOM + injected in-memory storage; NOT true native browser origin/Web Locks",
+  "browser": "/usr/bin/chromium"
+}

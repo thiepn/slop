@@ -1,0 +1,97 @@
+{
+  "baseline": "/mnt/data/slop_phase9_work/slopocalypse_site",
+  "pages": 44,
+  "tests": [
+    {
+      "name": "625-event idempotency: no duplicate citation collectible",
+      "ok": true,
+      "detail": "{'before': 1, 'after': 1, 'persisted': True, 'seen': 600, 'events': 160, 'inventory': 1}"
+    },
+    {
+      "name": "durable source acknowledgement bounded",
+      "ok": true,
+      "detail": "{'before': 1, 'after': 1, 'persisted': True, 'seen': 600, 'events': 160, 'inventory': 1}"
+    },
+    {
+      "name": "no runtime errors in long session",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "verified backup contains source acknowledgements",
+      "ok": true,
+      "detail": "{'version': 2, 'sourceSeen': 2, 'blocked': True, 'preview': {'credits': 1200, 'cascades': 0, 'claimed': 0, 'ledger': 160}}"
+    },
+    {
+      "name": "tampered backup is rejected",
+      "ok": true,
+      "detail": "{'version': 2, 'sourceSeen': 2, 'blocked': True, 'preview': {'credits': 1200, 'cascades': 0, 'claimed': 0, 'ledger': 160}}"
+    },
+    {
+      "name": "legacy installation write failure is not reported as success",
+      "ok": true,
+      "detail": "{'installedReturn': False, 'installed': False, 'factReturn': None, 'hasFact': False}"
+    },
+    {
+      "name": "legacy failed hallucination does not create a phantom fact",
+      "ok": true,
+      "detail": "{'installedReturn': False, 'installed': False, 'factReturn': None, 'hasFact': False}"
+    },
+    {
+      "name": "failed ad write restores wallet and society",
+      "ok": true,
+      "detail": "{'ok': False, 'reason': 'No credits charged. Fictional advertisement could not be saved.', 'credits': 1200, 'starting': 1200, 'ads': 0, 'persistedAds': 0, 'journal': None}"
+    },
+    {
+      "name": "successful ad charges exactly once and persists",
+      "ok": true,
+      "detail": "{'ok': True, 'charge': 71, 'ads': 1, 'persistedAds': 1, 'journal': None}"
+    },
+    {
+      "name": "interrupted ad journal recovers both stores after reload",
+      "ok": true,
+      "detail": "{'journal': None, 'credits': 1129, 'ads': ['sc-mw1b7p0a-1']}"
+    },
+    {
+      "name": "full four-store backup import restores wallet in memory",
+      "ok": true,
+      "detail": "{'credits': 1200, 'before': 1200, 'preview': {'credits': 1200, 'cascades': 0, 'claimed': 0, 'ledger': 1}, 'world': True}"
+    },
+    {
+      "name": "failed restore rolls back without damaging wallet",
+      "ok": true,
+      "detail": "{'rejected': True, 'unchanged': True, 'wal': 1200, 'journal': None}"
+    },
+    {
+      "name": "UTF-8 near-quota oversized import rejected",
+      "ok": true,
+      "detail": "{'rejected': True, 'error': 'Backup exceeds 3 MB.'}"
+    },
+    {
+      "name": "focused visible controls have accessible names",
+      "ok": true,
+      "detail": "{'buttons': 12, 'unnamedButtons': 0, 'inputs': 6, 'unlabeled': [], 'center': 'dialog'}"
+    },
+    {
+      "name": "launcher dialog opens with focus and closes on Escape",
+      "ok": true,
+      "detail": "{'open': True, 'modal': 'true', 'focus': True}"
+    }
+  ],
+  "failures": [],
+  "responsive": {
+    "total": 44,
+    "passed": 44,
+    "widths": [
+      320,
+      390,
+      768,
+      1440
+    ]
+  },
+  "assets": {},
+  "limitations": [
+    "Native navigation to http://127.0.0.1 is blocked by browser administrator policy; all Chromium page tests use set_content and an in-memory localStorage test double.",
+    "Native Web Locks, native cross-tab BroadcastChannel and physical-device tests could not be executed."
+  ]
+}

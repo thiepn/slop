@@ -1,0 +1,35 @@
+{
+  "version": "SLOPOCALYPSE 3.1 Phase 9",
+  "baseline": "338c667a417bf4cd274d0b4a8b26457843c38e72e1fa865aedb8811ad7be8860",
+  "preservedPages": 44,
+  "modifiedBaselineFiles": [
+    "slopocalypse_site/s2-apps.js",
+    "slopocalypse_site/s32-world.js"
+  ],
+  "targetedUniquePassed": 14,
+  "phase8RegressionUniquePassed": 15,
+  "phase8RegressionReruns": 4,
+  "responsivePassed": 176,
+  "responsiveTotal": 176,
+  "responsiveWidths": [
+    320,
+    390,
+    768,
+    1440
+  ],
+  "localReferencesResolved": 3396,
+  "nativeBrowserResults": {
+    "PASS": 0,
+    "FAIL": 0,
+    "BLOCKED": 1,
+    "UNAVAILABLE": 2
+  },
+  "knownLimitations": [
+    "Native Chromium localhost navigation blocked by administrator policy",
+    "Firefox and WebKit browser executables absent",
+    "Native two-tab Web Locks and BroadcastChannel still unqualified",
+    "No actual multi-hour soak or screen reader session",
+    "4,096-event bounded external acknowledgement retains finite replay horizon",
+    "Legacy synchronous v2 writes cannot guarantee atomic multi-tab concurrency"
+  ]
+}

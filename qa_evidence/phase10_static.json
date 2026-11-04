@@ -1,0 +1,131 @@
+{
+  "baselineSha256": "6c27725280010d4cca7eb49aca5aa0e6d449a8a63fe4074d19a45181aab4e727",
+  "baselineFiles": 104,
+  "currentFiles": 119,
+  "htmlPages": 44,
+  "baselineFilesMissing": [],
+  "baselineFilesModified": [
+    "s32-world.js",
+    "tests/native_qualification.py"
+  ],
+  "newFiles": [
+    "PHASE11_NEXT.md",
+    "QA_3_1_PHASE10.md",
+    "qa_evidence/phase10_idle.json",
+    "qa_evidence/phase10_native_baseline.json",
+    "qa_evidence/phase10_native_final.json",
+    "qa_evidence/phase10_pages.json",
+    "qa_evidence/phase10_previous_regression.json",
+    "qa_evidence/phase10_replay_recovery.json",
+    "qa_evidence/phase10_repro_4096_after.json",
+    "qa_evidence/phase10_repro_4096_before.json",
+    "qa_evidence/phase10_static.json",
+    "tests/__pycache__/native_qualification.cpython-313.pyc",
+    "tests/phase10_idle.py",
+    "tests/phase10_pages.py",
+    "tests/phase10_replay_recovery.py"
+  ],
+  "localLinksChecked": 3396,
+  "missingLocalReferences": [],
+  "badFragments": [],
+  "remoteReferences": [],
+  "jsSyntax": [
+    {
+      "file": "s33-apps.js",
+      "ok": true,
+      "stderr": ""
+    },
+    {
+      "file": "s31-core.js",
+      "ok": true,
+      "stderr": ""
+    },
+    {
+      "file": "s34-social.js",
+      "ok": true,
+      "stderr": ""
+    },
+    {
+      "file": "s2-world.js",
+      "ok": true,
+      "stderr": ""
+    },
+    {
+      "file": "s36-legacy.js",
+      "ok": true,
+      "stderr": ""
+    },
+    {
+      "file": "s3-apps.js",
+      "ok": true,
+      "stderr": ""
+    },
+    {
+      "file": "s37-hardening.js",
+      "ok": true,
+      "stderr": ""
+    },
+    {
+      "file": "s3-world.js",
+      "ok": true,
+      "stderr": ""
+    },
+    {
+      "file": "s35-games.js",
+      "ok": true,
+      "stderr": ""
+    },
+    {
+      "file": "s2-apps.js",
+      "ok": true,
+      "stderr": ""
+    },
+    {
+      "file": "s32-world.js",
+      "ok": true,
+      "stderr": ""
+    },
+    {
+      "file": "slop-expansion.js",
+      "ok": true,
+      "stderr": ""
+    },
+    {
+      "file": "slop-pages.js",
+      "ok": true,
+      "stderr": ""
+    }
+  ],
+  "http": [
+    {
+      "path": "index.html",
+      "status": 200,
+      "length": 145371
+    },
+    {
+      "path": "slopos.html",
+      "status": 200,
+      "length": 8207
+    },
+    {
+      "path": "slopcoin.html",
+      "status": 200,
+      "length": 8617
+    },
+    {
+      "path": "slopnews.html",
+      "status": 200,
+      "length": 7791
+    },
+    {
+      "path": "s32-world.js",
+      "status": 200,
+      "length": 24655
+    },
+    {
+      "path": "tests/native_qualification.py",
+      "status": 200,
+      "length": 12002
+    }
+  ]
+}

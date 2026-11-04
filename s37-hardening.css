@@ -1,0 +1,37 @@
+/* Phase 7: intentionally polished operations controls among satirical chaos. */
+#s37-open,#s37-modal,#s37-shade{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}
+#s37-open{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;background:#34224b;border:1px solid #80689b;border-radius:10px;color:#f5e9ff;font-weight:700;font-size:12px;min-height:42px;padding:8px 12px;cursor:pointer;white-space:nowrap}
+#s37-open:hover{background:#53406c;border-color:#c29ce7}
+#s37-open:focus-visible,#s37-modal button:focus-visible,#s37-modal summary:focus-visible{outline:3px solid #ffdf72;outline-offset:3px}
+#s37-shade:not([hidden]){position:fixed;inset:0;z-index:1090;background:rgba(9,5,20,.82);backdrop-filter:blur(7px)}
+#s37-modal:not([hidden]){position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1091;display:block;width:min(660px,calc(100vw - 24px));max-height:min(780px,calc(100dvh - 28px));overflow-y:auto;background:#1b132b;border:1px solid #8b64ac;border-radius:19px;box-shadow:0 35px 140px #07000c;color:#f9efff;padding:clamp(14px,3vw,24px)}
+#s37-modal *{box-sizing:border-box}
+.s37-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding-bottom:12px;border-bottom:1px solid #4b365e}
+.s37-head h2{font-size:clamp(18px,3.5vw,27px);margin:4px 0 6px;line-height:1.2;color:#fff}
+.s37-head p{font-size:13px;margin:0;color:#d8c8e8}
+.s37-eyebrow{font-size:10px;color:#f9d879;font-weight:800;letter-spacing:1px}
+#s37-close{font-size:29px;line-height:1;min-width:43px;min-height:43px;border-radius:9px;background:#40234e;color:#fff;border:1px solid #8c6aa4;cursor:pointer}
+.s37-health{padding:13px 14px;border-radius:9px;background:#203b36;color:#bdecd5;font-weight:750;font-size:13px}
+.s37-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.s37-stats>div{padding:12px;border:1px solid #58426d;border-radius:9px;background:#291b3e;min-width:0}
+.s37-stats small{display:block;font-size:11px;color:#d6c5df}
+.s37-stats strong{display:block;font-size:19px;margin-top:5px;color:#fff;overflow-wrap:anywhere}
+.s37-stores{padding:12px 14px;margin:12px 0;background:#211731;border-radius:9px;border:1px solid #4f3c64;list-style:none}
+.s37-stores li{display:flex;justify-content:space-between;gap:12px;padding:4px 0;color:#d8c8e5;font-size:12px}
+.s37-stores strong{color:#fff}
+.s37-note,.s37-foot{font-size:12px;color:#d0bedd;line-height:1.6}
+#s37-modal details{padding:11px 12px;background:#302340;border-radius:9px;color:#e9dbfa;font-size:12px}
+#s37-modal summary{cursor:pointer;font-weight:700}
+.s37-cap-list{max-height:140px;overflow:auto;line-height:1.8}
+.s37-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
+.s37-actions button{border:1px solid #88719e;background:#332545;color:#fff;border-radius:9px;padding:11px 13px;min-height:44px;font-weight:700;cursor:pointer}
+.s37-actions button:last-child{background:linear-gradient(105deg,#9945d9,#c641a7);border-color:#d48af4}
+.s37-actions button:disabled{opacity:.48;cursor:not-allowed}
+.s37-message{min-height:22px;font-size:13px;color:#f0d980}
+@media(max-width:700px){.s37-wide-label{display:none}#s37-open{padding:7px 11px;min-width:42px;justify-content:center}#s37-modal{border-radius:12px}}
+@media(max-width:350px){.s37-stats{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){#s37-shade{backdrop-filter:none}#s37-modal *,#s37-open{transition:none!important;animation:none!important}}
+
+html.s31-reduced #s37-modal *,html.s31-reduced #s37-open{transition:none!important;animation:none!important}
+/* On narrow phones Activity remains available through the app launcher tabs. */
+@media(max-width:375px){#s31-bar [data-s31-open="activity"]{display:none!important}}

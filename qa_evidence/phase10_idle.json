@@ -1,0 +1,16 @@
+{
+  "method": "Chromium DOM in-memory storage, tab remained open during real wait; NOT real HTTP-origin native tabs",
+  "idleSeconds": 30.0,
+  "before": {
+    "ok": true,
+    "revision": 1,
+    "encoded": 87384
+  },
+  "after": {
+    "duplicate": false,
+    "next": true,
+    "revision": 2
+  },
+  "errors": [],
+  "pass": true
+}
