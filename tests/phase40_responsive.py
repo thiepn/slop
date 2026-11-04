@@ -23,7 +23,10 @@ with sync_playwright() as pw:
     page.set_content(source,wait_until='domcontentloaded',timeout=25000)
     page.wait_for_function('()=>!!window.Slop40 && !!document.querySelector("#s40-open")',timeout=15000)
     overflow=page.evaluate('()=>document.documentElement.scrollWidth>window.innerWidth')
-    if overflow or errors: fail.append((name,width,'overflow' if overflow else errors[:2]))
+    if overflow:
+     details=page.evaluate("""() => ({width:innerWidth,scroll:document.documentElement.scrollWidth,offenders:[...document.querySelectorAll('body *')].filter(e=>{const r=e.getBoundingClientRect();return r.width&&r.right>innerWidth+1&&!['SCRIPT','STYLE'].includes(e.tagName)}).sort((a,b)=>b.getBoundingClientRect().right-a.getBoundingClientRect().right).slice(0,8).map(e=>({tag:e.tagName,cls:String(e.className).slice(0,90),text:(e.textContent||'').trim().slice(0,65),right:Math.round(e.getBoundingClientRect().right),width:Math.round(e.getBoundingClientRect().width)}))})""")
+     fail.append((name,width,details))
+    elif errors:fail.append((name,width,errors[:2]))
     else:checks+=1
    except Exception as exc:fail.append((name,width,str(exc)[:160]))
    finally:page.close()

@@ -49,6 +49,8 @@ async def main():
      record('native 4.0 HTTP entrypoint',False,str(e)[:400],t)
     else:
      async def two_tab_time():
+      # A fresh v2 world is initialized lazily by the first 4.0 transaction.
+      await one.evaluate('() => Slop40.advance(1)')
       before=await one.evaluate('JSON.parse(localStorage.getItem("'+V2+'")).phase40.tick')
       changes=await asyncio.gather(one.evaluate('() => Slop40.advance(1)'),two.evaluate('() => Slop40.advance(1)'))
       after=await one.evaluate('JSON.parse(localStorage.getItem("'+V2+'")).phase40.tick')

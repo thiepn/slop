@@ -217,6 +217,14 @@
   if(typeof id!=='string'||!/^[a-z-]{1,45}$/.test(id)||!Number.isSafeInteger(award)||award<=0||award>1000)return {ok:false,reason:'Invalid reward request'};
   return exclusive(()=>{
    if(!eligible())return {ok:false,reason:'Complete the mission first'};
+   // Check the durable claim marker *inside* the native Web Lock. A tab's
+   // in-memory v32 revision can briefly outrun the persisted revision after
+   // background work; a second claimant must not report false success.
+   const durable=storageRead(KEY);
+   if(durable?.rewards?.claimed?.includes(id)){
+    data=normalize(durable);
+    return {ok:false,reason:'Already claimed'};
+   }
    if(data.rewards.claimed.includes(id))return {ok:false,reason:'Already claimed'};
    const v2=storageRead(S2);const ui=storageRead(S31);
    if(!checkSource(S2,v2)||!checkSource(S31,ui))return {ok:false,reason:'Legacy state unavailable'};

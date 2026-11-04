@@ -23,3 +23,7 @@ The workflow always uploads raw JSON and logs where available. Job failure is me
 ## Outstanding qualification
 
 Until exact-head GitHub Actions have completed, native results remain **PENDING**. Even successful automated browser checks do not substitute for screen-reader evaluation, physical devices, or human gameplay acceptance. PR #1 must stay open and draft; no merge, Pages deployment, live migration or release is authorized.
+
+## First actual GitHub CI findings (run 41870232635)
+
+Real loopback HTTP succeeded in all three browsers. Native Web Locks, BroadcastChannel and shared storage passed. The **six functional suites passed in GitHub CI** (330/330). All three browsers reproduced an existing legacy v2 lost-update hazard during simultaneous synchronous `earn` writes (run remains RED). Firefox also showed a false-positive return value from one concurrent mission claim, although the final wallet had only one credited reward and one marker. A narrow durable-marker recheck has been added in the v32 claim path; it requires requalification on the new exact head. The new 4.0 test initially read `phase40.tick` before the lazily initialized record was persisted, an invalid test precondition; the test now initializes it. The responsive regression reproduced 320px overflow on awards.html in CI; diagnostics now identify the responsible element. No layout change made without evidence.
