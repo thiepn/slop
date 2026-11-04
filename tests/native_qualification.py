@@ -82,30 +82,31 @@ async def test_one(browser_type,base,records,idle,stress_pairs,executable_path=N
    mission='phase-ten-native-concurrency'
    attempt=f"async()=>window.SlopWorld32.claimMission('{mission}',37,()=>true)"
    left,right=await asyncio.gather(a.evaluate(attempt),b.evaluate(attempt))
-   saved=await a.evaluate("""() => ({credits:JSON.parse(localStorage.getItem('slopocalypse:fictional-internet:v2')).credits,claimed:JSON.parse(localStorage.getItem('slopocalypse:world-engine:v32')).rewards.claimed})""")
-   ok=sum([bool(left.get('ok')),bool(right.get('ok'))])==1 and saved['credits']==initial+37 and saved['claimed'].count(mission)==1
-   note(records,label+' concurrent claim exactly-once','PASS' if ok else 'FAIL',{'attempts':[left,right],'start':initial,'finish':saved['credits'],'markers':saved['claimed'].count(mission)})
+   saved=await a.evaluate("""(mission) => {const v2=JSON.parse(localStorage.getItem('slopocalypse:fictional-internet:v2'));const v32=JSON.parse(localStorage.getItem('slopocalypse:world-engine:v32'));const ui=JSON.parse(localStorage.getItem('slopocalypse:interaction:v31'));return {credits:v2.credits,claimed:v32.rewards.claimed,v2Reward:v2.rewardClaimsV32?.[mission]||null,uiClaimed:!!ui.claimed?.includes(mission),v2Revision:v2.revision,v32Revision:v32.revision};}""",mission)
+   third=await a.evaluate(attempt)
+   ok=sum([bool(left.get('ok')),bool(right.get('ok'))])==1 and saved['credits']==initial+37 and saved['claimed'].count(mission)==1 and not third.get('ok')
+   note(records,label+' concurrent claim exactly-once','PASS' if ok else 'FAIL',{'attempts':[left,right],'third':third,'start':initial,'finish':saved['credits'],'markers':saved['claimed'].count(mission),'v2Reward':saved['v2Reward'],'uiClaimed':saved['uiClaimed'],'v2Revision':saved['v2Revision'],'v32Revision':saved['v32Revision']})
   except Exception as e:note(records,label+' concurrent claim exactly-once','FAIL',str(e)[:300])
-  # Legacy synchronous writes are NOT protected by v32 Web Locks. Running
-  # this stress on a real origin may reproduce lost updates; a pass here is
-  # a sample, never a proof that the legacy path is race-free.
+  # Earnings now use Web Locks when available, while other synchronous v2
+  # writers can still race. A pass is not a general CAS guarantee.
   if stress_pairs:
    try:
     await a.evaluate('window.SlopWorld32.sync()')
     before=await a.evaluate('window.SlopWorld.state.credits')
-    attempts=[]
+    attempts=[];wallet_trace=[]
     for i in range(stress_pairs):
      reason=f'phase10-race-{i}'
      expr=f"() => window.SlopWorld.earn(7,'{reason}')"
      x,y=await asyncio.gather(a.evaluate(expr),b.evaluate(expr))
      attempts.append([x,y])
+     wallet_trace.append(await a.evaluate('JSON.parse(localStorage.getItem("slopocalypse:fictional-internet:v2")).credits'))
     final=await a.evaluate('JSON.parse(localStorage.getItem("slopocalypse:fictional-internet:v2")).credits')
     expected=before+7*sum(sum(bool(v) for v in pair) for pair in attempts)
     # Earning a legacy reward may be followed by a separate, non-credit
     # achievement write. Only the wallet delta and reported successful calls
     # are compared; the experiment does not certify atomicity.
     ok=final==expected
-    note(records,label+' legacy two-tab lost-update stress','PASS' if ok else 'FAIL',{'attempts':stress_pairs,'reportedSuccesses':sum(sum(bool(v) for v in pair) for pair in attempts),'expectedCredits':expected,'actualCredits':final})
+    note(records,label+' legacy two-tab lost-update stress','PASS' if ok else 'FAIL',{'attempts':stress_pairs,'reportedSuccesses':sum(sum(bool(v) for v in pair) for pair in attempts),'expectedCredits':expected,'actualCredits':final,'walletAfterPairs':wallet_trace})
    except Exception as e:note(records,label+' legacy two-tab lost-update stress','FAIL',str(e)[:350])
   # Backup, restart and last-mile UI checks.
   try:

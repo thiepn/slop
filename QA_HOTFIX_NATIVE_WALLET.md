@@ -33,3 +33,11 @@
 - Four-store version-2 backup format unchanged; old saved progress and mission rewards never reset or overwritten.
 - `main`, original HTML, historical campaign and endings content, and Pages deployment workflow remain untouched.
 - Never merge automatically. Native browser failures are meaningful CI blockers; do not weaken tests to obtain a green result.
+## Native follow-up and responsive correction
+- First exact-HEAD PR CI #41928032552: Chromium sampled claim once correctly but still lost an earning; Firefox reported two claim successes for one 37-credit award and lost earnings. The 320px awards overflow and Firefox injected-quota pageerror persisted.
+- Second exact-HEAD PR CI #41928823277: Firefox again reported two claim successes and a 21-credit deficit; the issue remains unresolved. Arbitrary synchronous v2 mutations are not cross-tab atomic.
+- The legacy wallet now rebases from *durable* v2 data regardless of cached revision. A local stale-revision test passes; native evidence must independently qualify it.
+- Awards font-stress reproduction: at 320px viewport, widening heading glyph metrics produced 342px document width. A scoped wrapping rule returns width to 320px without clipping. Focused suite is now **11/11 PASS** locally.
+- Native suite now captures the v2/UI/v32 markers and the wallet balance after each two-tab pair. Existing assertions are not weakened.
+- Firefox's injected-quota pageerror is annotated by test phase for diagnosis; it is not silently ignored.
+- PR remains experimental and MUST NOT merge or deploy until all required native gates pass.
