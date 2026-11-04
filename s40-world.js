@@ -60,6 +60,28 @@ const AUTONOMOUS={
  satoshi:['bets on a synthetic mango-futures collapse','starts a zero-liquidity trading frenzy'],
  dean:['publishes an independent election methodology','convenes an ethics panel of eight robots']
 };
+// Context is earned by earlier player choices, rather than determined solely by
+// a character's default personality. These integer modifiers are deterministic
+// and do not introduce any new save fields, stores, or credit rewards.
+// Paths that contradict a proposal carry real costs; players can still rescue
+// a difficult proposal through scarce council/negotiation opportunities.
+const PATH_INFLUENCE={
+ 'mango:hearing:truth':{audit:7,leak:5,publish:9,film:6,question:5,hype:-11,pump:-11,cover:-4},
+ 'mango:hearing:brand':{hype:7,pump:9,cover:6,audit:-11,publish:-11,divest:-8,question:-8},
+ 'mango:hearing:sue':{leak:5,film:7,divest:8,question:5,cover:-6,pump:-6},
+ 'cloud:hearing:settle':{listen:7,union:8,coffee:6,sell:-12,ignore:-12,ship:-8},
+ 'cloud:hearing:reset':{restart:7,rollback:9,document:7,sell:-9,ignore:-9,ship:-12,union:-4},
+ 'cloud:hearing:rights':{listen:7,union:9,ignore:4,restart:-10,rollback:-11,ship:-9},
+ 'election:ballot:independent':{fair:7,evidence:9,bot:5,poll:5,refuse:6,fund:-12,accept:-12,meme:-7},
+ 'election:ballot:corporate':{fund:7,accept:9,meme:6,fair:-10,refuse:-10,expose:-12,evidence:-7},
+ 'election:ballot:invalidate':{bot:7,expose:9,poll:6,evidence:5,fund:-10,accept:-12}
+};
+function pathInfluence(s,o,stake){
+ if(!stake)return {delta:0,reasons:[]};
+ const c=s.campaigns[s.active];const weights=PATH_INFLUENCE[`${s.active}:${c?.node}:${o.id}`]||{};
+ const reasons=(c?.decisions||[]).map(d=>({option:d.option,points:weights[d.option]||0})).filter(x=>x.points);
+ return {delta:Math.max(-26,Math.min(24,reasons.reduce((total,x)=>total+x.points,0))),reasons};
+}
 const PEOPLE=()=>citizens.map(([id,name,role,goal,trait,rival])=>({id,name,role,goal,trait,rival,trust:50,energy:70,mood:'undecided',memory:[],relations:{[rival]:-20}}));
 const option=(id,label,to,headline,actor='mango',market=0,notes='',caseTitle='')=>({id,label,to,headline,actor,market,notes,caseTitle});
 const CAMPAIGNS={
@@ -126,8 +148,9 @@ function support(s,o,stake=null){
  const allyBond=clamp(actor.relations?.[ally.id]??0,-100,100);
  const rivalBond=clamp(actor.relations?.[rival.id]??0,-100,100);
  const alignment=stake?stake.trait===actor.trait:!!TRAIT_SUPPORT[actor.trait]&&TRAIT_SUPPORT[actor.trait]===o.id;
- const score=Math.round(clamp(actor.trust*.64+ally.trust*.22+(allyBond+100)*.07+(rivalBond+100)*.04+actor.energy*.06-rival.trust*.08+(alignment?6:-2),0,100));
- return {score,threshold:53,actor:actor.id,ally:ally.id,rival:rival.id,alignment};
+ const context=pathInfluence(s,o,stake);
+ const score=Math.round(clamp(actor.trust*.64+ally.trust*.22+(allyBond+100)*.07+(rivalBond+100)*.04+actor.energy*.06-rival.trust*.08+(alignment?6:-2)+context.delta,0,100));
+ return {score,threshold:53,actor:actor.id,ally:ally.id,rival:rival.id,alignment,context};
 }
 function resolvedChoice(s,id,nodeId,o){
  const stake=STAKES[`${id}:${nodeId}:${o.id}`];const backing=support(s,o,stake);
@@ -172,17 +195,31 @@ function negotiate(optionId,tactic){return transaction((s,store)=>{
  if(c.diplomacy>=2)throw Error('Both diplomatic opportunities have been used.');
  if(c.negotiations.some(n=>n.key===key))throw Error('This witness already gave a final answer this run.');
  const actor=s.citizens.find(x=>x.id===o.actor),ally=s.citizens.find(x=>x.id===ALLIES[o.actor]);
- const prior=c.decisions.map(x=>x.option),hasProof=prior.some(x=>['audit','publish','document','expose','evidence','poll','question'].includes(x));
- const accepted=actor.energy>=12&&(
-  tactic==='evidence'?(['curious','skeptical','academic','anxious'].includes(actor.trait)||hasProof&&actor.trust>=55):
-  tactic==='deal'?(['ambitious','optimistic','volatile'].includes(actor.trait)||actor.trust>=72):
-  actor.trait==='combative'&&actor.trust>=35);
- const delta=accepted?28:-13,relation=accepted?18:-16;
- actor.trust=clamp(actor.trust+delta,0,100);actor.energy=clamp(actor.energy-(accepted?8:12),0,100);
+ const prior=c.decisions.map(x=>x.option);
+ // Credible groundwork is required. A personality match alone is not proof:
+ // a researcher cannot endorse 'evidence' after two unsupported hype actions.
+ const hasProof=prior.some(x=>['audit','leak','publish','film','question','rollback','document','expose','evidence','poll','bot','refuse'].includes(x));
+ const mandate=prior.some(x=>['hype','pump','cover','sell','coffee','fund','accept','meme','union'].includes(x));
+ const legalGrounds=prior.some(x=>['audit','leak','film','divest','union','listen','ignore','expose','bot','evidence','poll'].includes(x));
+ const fit=tactic==='evidence'?['curious','skeptical','academic','anxious'].includes(actor.trait):tactic==='deal'?['ambitious','optimistic','volatile'].includes(actor.trait):actor.trait==='combative';
+ const groundwork=tactic==='evidence'?hasProof:tactic==='deal'?mandate:legalGrounds;
+ const accepted=actor.energy>=12&&groundwork&&(fit||actor.trust>=75);
+ // Negotiations have different political costs: testimony is constructive but
+ // modest, deals alienate skeptics, and legal pressure polarizes rivals.
+ const delta=accepted?(tactic==='evidence'?21:tactic==='deal'?28:30):-13;
+ const relation=accepted?(tactic==='evidence'?14:tactic==='deal'?18:7):-16;
+ actor.trust=clamp(actor.trust+delta,0,100);actor.energy=clamp(actor.energy-(accepted?(tactic==='evidence'?6:10):12),0,100);
  actor.mood=accepted?'committed':'unconvinced';
- if(ally){actor.relations[ally.id]=clamp((actor.relations[ally.id]||0)+relation,-100,100);ally.trust=clamp(ally.trust+(accepted?8:-5),0,100);}
+ if(ally){actor.relations[ally.id]=clamp((actor.relations[ally.id]||0)+relation,-100,100);ally.trust=clamp(ally.trust+(accepted?(tactic==='evidence'?6:8):-5),0,100);}
+ const rival=s.citizens.find(x=>x.id===actor.rival);
+ if(accepted&&rival){
+  const hostility=tactic==='evidence'?2:tactic==='deal'?-9:-19;
+  rival.trust=clamp(rival.trust+hostility,0,100);
+  actor.relations[rival.id]=clamp((actor.relations[rival.id]||0)+hostility,-100,100);
+ }
  const verdict=accepted?`accepted your ${tactic} proposal and promised faction support`:`rejected the ${tactic} proposal and warned their allies`;
- const reply=`${actor.name} ${verdict}. ${accepted?'The coalition moves toward the proposal.':'Trust and energy fall; the proposal is at greater risk.'}`;
+ const reason=!accepted&&!groundwork?'The required groundwork was missing.':!accepted&&actor.energy<12?'The witness was exhausted.':!accepted?'Your relationship was insufficient.':tactic==='evidence'?'The testimony is credible and opponents feel heard.':tactic==='deal'?'The bargain reassures investors but alienates skeptics.':'The legal threat rallies allies but inflames rivals.';
+ const reply=`${actor.name} ${verdict}. ${reason}`;
  actor.memory.unshift({at:clock(s),text:reply});actor.memory=actor.memory.slice(0,8);
  const record={key,actor:o.actor,tactic,accepted,at:clock(s),reply};
  c.diplomacy++;c.negotiations.push(record);
@@ -240,7 +277,7 @@ function choose(optionId){return transaction((s,store)=>{
  const id=s.active,c=s.campaigns[id],node=CAMPAIGNS[id]?.nodes[c.node];if(c.status!=='active'||!node)throw Error('Start a campaign before choosing.');
  const o=node.options.find(x=>x.id===optionId);if(!o)throw Error('This decision is not available.');
  const previousNode=c.node,decision=resolvedChoice(s,id,previousNode,o);
- c.decisions.push({node:previousNode,option:o.id,at:clock(s),support:decision.backing.score,approved:!decision.rejected,resolvedEnding:decision.ending});
+ c.decisions.push({node:previousNode,option:o.id,at:clock(s),support:decision.backing.score,approved:!decision.rejected,resolvedEnding:decision.ending,pathInfluence:decision.backing.context.delta});
  c.node=o.to.startsWith('!')?null:o.to;
  if(o.to.startsWith('!')){c.status='completed';c.ending=decision.ending;c.completed++;if(!c.endingsSeen.includes(c.ending))c.endingsSeen.push(c.ending);}
  const e=event(s,{kind:decision.rejected?'coalition-veto':'campaign',...decision});
@@ -258,6 +295,10 @@ function replay(id){if(!CAMPAIGNS[id])return Promise.reject(Error('Unknown campa
 function advance(hours=1){const n=Math.floor(clamp(hours,1,24));return transaction((s,store)=>{
   for(let i=0;i<n;i++){
    s.tick++;s.step++;
+   // Without recovery, all eight characters eventually hit zero energy and
+   // permanently enter the destructive AI loop. Rest is deterministic and
+   // never creates credits, inbox spam, or extra world events.
+   if(s.tick%6===0)for(const citizen of s.citizens)citizen.energy=clamp(citizen.energy+2,0,100);
    if(s.tick%4===0){
     const c=s.citizens[Math.floor(rand(s)*s.citizens.length)],act=AUTONOMOUS[c.id],initiative=rand(s)<.5?0:1;
     const ally=s.citizens.find(x=>x.id===ALLIES[c.id]),rival=s.citizens.find(x=>x.id===c.rival);
@@ -312,7 +353,7 @@ function campaignUI(s){const active=s.active,c=s.campaigns[active],def=CAMPAIGNS
 <div class="s40-grid">${Object.entries(CAMPAIGNS).map(([id,d])=>`<article class="s40-card ${active===id?'selected':''}"><h3>${esc(d.title)}</h3><p>${esc(d.description)}</p><small>${esc(s.campaigns[id].status==='completed'?'Ending: '+s.campaigns[id].ending:s.campaigns[id].status)} · ${s.campaigns[id].endingsSeen.length}/${Object.keys(d.endings).length} endings discovered</small><div class="s40-actions">${btn('Explore','select',id)}${s.campaigns[id].status==='not-started'?btn('Start','start',id,'s40-primary'):s.campaigns[id].status==='completed'?btn('Replay','replay',id):''}</div></article>`).join('')}</div>
 <section class="s40-story" aria-label="Current fictional campaign"><p class="s40-overline">CURRENT STORY · ${esc(def.title)}</p><h3>${esc(c.status==='completed'?'Campaign complete':(node?.title||'Ready to begin'))}</h3>
 ${c.status==='completed'?`<p><strong>Ending reached: ${esc(c.ending)}</strong></p><p>${esc(def.endings[c.ending]||'Campaign completed.')}</p>${btn('Replay with different choices','replay',active,'s40-primary')}`:
- node?`<p>${esc(node.text)}</p><p class="s40-overline">Factions matter. Support combines trust, alliances, rivalries, energy and personality. A pivotal proposal needs 53 support; a failed vote produces an alternative ending.</p><div class="s40-options">${node.options.map(o=>{const vote=resolvedChoice(s,active,c.node,o);const pivotal=!!STAKES[`${active}:${c.node}:${o.id}`];return `<button class="s40-choice" data-action="choose" data-id="${esc(o.id)}"><strong>${esc(o.label)}</strong><span>${esc(o.notes)}</span><small>${o.market>=0?'+':''}${o.market} VIBE base market effect · ${esc((citizens.find(c=>c[0]===o.actor)||citizens[0])[1])}</small><small class="s40-support" ${pivotal?'':'aria-label="Non-pivotal support"'}>${pivotal?`Pivotal vote: ${vote.backing.score}/53 support · ${vote.rejected?'Opposed — alternate outcome':'Backed — proposal likely passes'}`:`Faction support: ${vote.backing.score}/100 · changes reactions`}</small></button>`;}).join('')}</div><section class="s40-council" aria-label="Faction council"><h4>Council briefings: ${c.council} / 2 used this run</h4><p>Rally an advisor to build support, or challenge them to empower the opposition. Each briefing consumes one of two opportunities, with no credit rewards.</p><div class="s40-actions">${[...new Set(node.options.map(o=>o.actor))].map(actorId=>{const person=s.citizens.find(x=>x.id===actorId);return `<div class="s40-council-person"><strong>${esc(person?.name||actorId)}</strong> ${btn('Rally','counsel',actorId+':rally','',`aria-label="Rally ${esc(person?.name||actorId)}" ${c.council>=2?'disabled':''}`)} ${btn('Challenge','counsel',actorId+':challenge','',`aria-label="Challenge ${esc(person?.name||actorId)}" ${c.council>=2?'disabled':''}`)}</div>`;}).join('')}</div></section>${Object.keys(NEGOTIATION_SCENES).some(k=>k.startsWith(active+':'+c.node+':'))?`<section class="s40-negotiations" aria-label="Character negotiation scenes"><h4>Character negotiations · ${c.diplomacy}/2 opportunities used</h4><p>Speak directly to a witness. Evidence favors researchers, deals favor founders, and pressure favors lawyers. The wrong approach can damage long-term alliances. Each witness answers once per run; no credits are awarded.</p>${node.options.filter(o=>NEGOTIATION_SCENES[`${active}:${c.node}:${o.id}`]).map(o=>{const key=`${active}:${c.node}:${o.id}`,scene=NEGOTIATION_SCENES[key],record=c.negotiations.find(x=>x.key===key);return `<article class="s40-negotiation"><strong>${esc(scene[0])} · ${esc(scene[2])}</strong><p>${esc(scene[1])}</p>${record?`<p class="s40-reply"><strong>${record.accepted?'Agreement':'Rejected'}:</strong> ${esc(record.reply)}</p>`:`<div class="s40-actions">${['evidence','deal','pressure'].map(t=>btn(({evidence:'Present evidence',deal:'Offer a deal',pressure:'Apply pressure'})[t],'negotiate',o.id+':'+t,'',`aria-label="${({evidence:'Present evidence to',deal:'Offer a deal to',pressure:'Apply pressure to'})[t]} ${esc(scene[0])}" ${c.diplomacy>=2?'disabled':''}`)).join('')}</div>`}</article>`;}).join('')}</section>`:''}`:`<p>${esc(def.description)}</p>${btn('Begin this crisis','start',active,'s40-primary')}`}
+ node?`<p>${esc(node.text)}</p><p class="s40-overline">Factions matter. Support combines trust, alliances, rivalries, energy and personality. A pivotal proposal needs 53 support; a failed vote produces an alternative ending.</p><div class="s40-options">${node.options.map(o=>{const vote=resolvedChoice(s,active,c.node,o);const pivotal=!!STAKES[`${active}:${c.node}:${o.id}`];return `<button class="s40-choice" data-action="choose" data-id="${esc(o.id)}"><strong>${esc(o.label)}</strong><span>${esc(o.notes)}</span><small>${o.market>=0?'+':''}${o.market} VIBE base market effect · ${esc((citizens.find(c=>c[0]===o.actor)||citizens[0])[1])}</small><small class="s40-support" ${pivotal?'':'aria-label="Non-pivotal support"'}>${pivotal?`Pivotal vote: ${vote.backing.score}/53 support · Path ${vote.backing.context.delta>=0?'+':''}${vote.backing.context.delta}${vote.backing.context.reasons.length?' ('+vote.backing.context.reasons.map(x=>`${x.option} ${x.points>=0?'+':''}${x.points}`).join(', ')+')':''} · ${vote.rejected?'Opposed — alternate outcome':'Backed — proposal likely passes'}`:`Faction support: ${vote.backing.score}/100 · changes reactions`}</small></button>`;}).join('')}</div><section class="s40-council" aria-label="Faction council"><h4>Council briefings: ${c.council} / 2 used this run</h4><p>Rally an advisor to build support, or challenge them to empower the opposition. Each briefing consumes one of two opportunities, with no credit rewards.</p><div class="s40-actions">${[...new Set(node.options.map(o=>o.actor))].map(actorId=>{const person=s.citizens.find(x=>x.id===actorId);return `<div class="s40-council-person"><strong>${esc(person?.name||actorId)}</strong> ${btn('Rally','counsel',actorId+':rally','',`aria-label="Rally ${esc(person?.name||actorId)}" ${c.council>=2?'disabled':''}`)} ${btn('Challenge','counsel',actorId+':challenge','',`aria-label="Challenge ${esc(person?.name||actorId)}" ${c.council>=2?'disabled':''}`)}</div>`;}).join('')}</div></section>${Object.keys(NEGOTIATION_SCENES).some(k=>k.startsWith(active+':'+c.node+':'))?`<section class="s40-negotiations" aria-label="Character negotiation scenes"><h4>Character negotiations · ${c.diplomacy}/2 opportunities used</h4><p>Speak directly to a witness. Evidence requires a research trail, deals need a mandate, and pressure needs legal grounds. Stronger tactics can alienate rivals. Two opportunities per run; no credits are awarded.</p>${node.options.filter(o=>NEGOTIATION_SCENES[`${active}:${c.node}:${o.id}`]).map(o=>{const key=`${active}:${c.node}:${o.id}`,scene=NEGOTIATION_SCENES[key],record=c.negotiations.find(x=>x.key===key);return `<article class="s40-negotiation"><strong>${esc(scene[0])} · ${esc(scene[2])}</strong><p>${esc(scene[1])}</p>${record?`<p class="s40-reply"><strong>${record.accepted?'Agreement':'Rejected'}:</strong> ${esc(record.reply)}</p>`:`<div class="s40-actions">${['evidence','deal','pressure'].map(t=>btn(({evidence:'Present evidence',deal:'Offer a deal',pressure:'Apply pressure'})[t],'negotiate',o.id+':'+t,'',`aria-label="${({evidence:'Present evidence to',deal:'Offer a deal to',pressure:'Apply pressure to'})[t]} ${esc(scene[0])}" ${c.diplomacy>=2?'disabled':''}`)).join('')}</div>`}</article>`;}).join('')}</section>`:''}`:`<p>${esc(def.description)}</p>${btn('Begin this crisis','start',active,'s40-primary')}`}
 ${c.decisions.length?`<h4>Decisions this run</h4><ol>${c.decisions.map(d=>{const o=def.nodes[d.node]?.options.find(x=>x.id===d.option);return `<li>${esc(o?.label||d.option)} — ${esc(o?.headline||d.node)} (${esc(d.at)})${Number.isFinite(d.support)?` · Support ${d.support}/100${d.approved===false?' · Coalition veto':''}`:''}</li>`;}).join('')}</ol>`:''}
 <h4>Endings discovered: ${c.endingsSeen.length} / ${Object.keys(def.endings).length}</h4>
 <ul class="s40-endings">${Object.entries(def.endings).map(([id,ending])=>`<li>${c.endingsSeen.includes(id)?esc(ending):'Undiscovered ending · ???'}</li>`).join('')}</ul></section>`}
