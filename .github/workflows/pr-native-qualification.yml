@@ -1,0 +1,100 @@
+name: Native-browser PR qualification (no deployment)
+
+on:
+  push:
+    branches: [feat/slopocalypse-4-living-internet]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: slop-native-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  existing-regressions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Chromium and dependencies
+        run: |
+          python -m pip install playwright beautifulsoup4
+          python -m playwright install --with-deps chromium
+          BROWSER=$(python -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()')
+          test -x "$BROWSER"
+          sudo ln -sf "$BROWSER" /usr/bin/chromium
+      - name: Run all six inherited functional suites
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p qa_evidence
+          for script in phase40_qualification phase40_hardening phase40_factions phase40_characters phase40_balance phase40_usability; do
+            python tests/${script}.py 2>&1 | tee qa_evidence/${script}_ci.log
+          done
+      - name: 44 original pages at 320, 390, 768, 1440px
+        shell: bash
+        run: |
+          set -o pipefail
+          for start in 0 11 22 33; do
+            python tests/phase40_responsive.py "$start" "$((start+11))"
+          done 2>&1 | tee qa_evidence/phase40_responsive_ci.log
+      - name: Upload regression evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-results
+          path: qa_evidence/*_ci.log
+          if-no-files-found: warn
+
+  real-origin:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install native browser
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps '${{ matrix.browser }}'
+          if [ '${{ matrix.browser }}' = chromium ]; then
+            BROWSER=$(python -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()')
+            sudo ln -sf "$BROWSER" /usr/bin/chromium
+          fi
+      - name: Native 3.1 two-tab Web Locks, BroadcastChannel, wallet and backup suite
+        id: legacy
+        continue-on-error: true
+        run: |
+          python tests/native_qualification.py --browsers '${{ matrix.browser }}' --stress-pairs 12 --idle-seconds 1 --output 'qa_evidence/native_legacy_${{ matrix.browser }}.json'
+      - name: Native 4.0 campaigns, checkpoints, replay and accessibility
+        id: living
+        continue-on-error: true
+        run: |
+          python tests/phase40_native_ci.py --browser '${{ matrix.browser }}' --output 'qa_evidence/native_40_${{ matrix.browser }}.json'
+      - name: Upload raw browser results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.browser }}-results
+          path: qa_evidence/native_*_${{ matrix.browser }}.json
+          if-no-files-found: warn
+      - name: Enforce both native suites
+        if: always()
+        run: |
+          test '${{ steps.legacy.outcome }}' = success
+          test '${{ steps.living.outcome }}' = success
