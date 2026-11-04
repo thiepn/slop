@@ -20,6 +20,23 @@ const citizens=[
  ['satoshi','Satoshi Nakamango','Meme-market trader','Profit without mathematics','volatile','lawyer'],
  ['dean','Prof. Professor','Self-appointed academic','Publish a rebuttal to reality','academic','intern']
 ];
+// Deliberately distinct factions, not randomly assigned success percentages.
+// The council only changes relationships in this browser-local simulation.
+const ALLIES={pigeon:'dean',gradient:'mango',stapler:'pigeon',lawyer:'intern',mango:'gradient',intern:'stapler',satoshi:'mango',dean:'pigeon'};
+const TRAIT_SUPPORT={curious:'truth',optimistic:'brand',skeptical:'reset',combative:'sue',ambitious:'corporate',anxious:'invalidate',volatile:'pump',academic:'independent'};
+// Pivotal votes may be overturned by an unsupportive faction. Choices are not
+// removed: a failed vote has an explicit, authored alternative consequence.
+const STAKES={
+ 'mango:hearing:truth':{trait:'curious',fallback:'trial',headline:'MANGO RESEARCH PANEL REJECTS THE EVIDENCE',detail:'The researchers refuse to certify the benchmark without a trusted witness.',caseTitle:'Quantum Mango v. Scientific Method'},
+ 'mango:hearing:brand':{trait:'optimistic',fallback:'trial',headline:'MANGO REBRAND BLOCKED BY ITS OWN INVESTORS',detail:'The branding coalition collapses and the court opens an inquiry.',caseTitle:'The People v. Quantum Mango Marketing'},
+ 'mango:hearing:sue':{trait:'combative',fallback:'unicorn',headline:'COURT DISMISSES FRUIT LAWSUIT',detail:'Without legal support, the CEO markets the acquittal as a unicorn endorsement.'},
+ 'cloud:hearing:settle':{trait:'combative',fallback:'chaos',headline:'SERVER UNION REJECTS THE TREATY',detail:'The mediation fails and the cloud demands legal personhood.',caseTitle:'Mars-East-1 v. Humanity'},
+ 'cloud:hearing:reset':{trait:'skeptical',fallback:'chaos',headline:'CLOUD REFUSES THE UNSUPPORTED REBOOT',detail:'The maintenance staff withholds its endorsement, giving the servers a legal opening.',caseTitle:'Mars-East-1 v. Humanity'},
+ 'cloud:hearing:rights':{trait:'combative',fallback:'reboot',headline:'SERVER RIGHTS BILL STALLS',detail:'The legal coalition withdraws support; engineers trigger the contingency reboot.'},
+ 'election:ballot:independent':{trait:'academic',fallback:'recount',headline:'INDEPENDENT RECOUNT LOSES CERTIFICATION',detail:'The academic commission refuses to sign an unsupported count.',caseTitle:'Residents v. The Voting Algorithm'},
+ 'election:ballot:corporate':{trait:'ambitious',fallback:'recount',headline:'CORPORATE MAYOR FAILS THE CONFIDENCE VOTE',detail:'Corporate allies withdraw and the results are invalidated.',caseTitle:'Residents v. The Voting Algorithm'},
+ 'election:ballot:invalidate':{trait:'combative',fallback:'ceo',headline:'ELECTION CHALLENGE DISMISSED',detail:'The court rejects the complaint, allowing the corporate candidate to claim victory.'}
+};
 const PEOPLE=()=>citizens.map(([id,name,role,goal,trait,rival])=>({id,name,role,goal,trait,rival,trust:50,energy:70,mood:'undecided',memory:[],relations:{[rival]:-20}}));
 const option=(id,label,to,headline,actor='mango',market=0,notes='',caseTitle='')=>({id,label,to,headline,actor,market,notes,caseTitle});
 const CAMPAIGNS={
@@ -42,7 +59,7 @@ const CAMPAIGNS={
  ballot:{title:'03 · The final count',text:'The voting machines produce three different election results. The auditor has one stapler left.',options:[option('independent','Order an independent recount','!fair','ELECTION COMMISSION CERTIFIES A SPINNER','dean',-1,'The final count is credible by local standards.'),option('corporate','Accept the CEO-endorsed numbers','!ceo','CORPORATE AI DECLARED MAYOR','mango',5,'The sidewalks now have subscriptions.'),option('invalidate','Invalidate the impossible results','!recount','CITY CANCELS ELECTION DUE TO NEGATIVE VOTERS','lawyer',-3,'The court orders new paperwork.','Residents v. The Voting Algorithm')]}}
  }
 };
-const FRESH=(seed='mango-4001')=>({version:VERSION,seed:String(seed).slice(0,40),rng:hash(seed)||1,step:0,tick:8,paused:true,active:'mango',citizens:PEOPLE(),campaigns:Object.fromEntries(Object.keys(CAMPAIGNS).map(id=>[id,{node:null,status:'not-started',decisions:[],ending:null,endingsSeen:[],run:0,completed:0}])),history:[],effects:[],rewards:[],slots:[],seq:0});
+const FRESH=(seed='mango-4001')=>({version:VERSION,seed:String(seed).slice(0,40),rng:hash(seed)||1,step:0,tick:8,paused:true,active:'mango',citizens:PEOPLE(),campaigns:Object.fromEntries(Object.keys(CAMPAIGNS).map(id=>[id,{node:null,status:'not-started',decisions:[],ending:null,endingsSeen:[],run:0,completed:0,council:0,consultations:[]}])),history:[],effects:[],rewards:[],slots:[],seq:0});
 function normalize(value){
  if(!value||value.version!==VERSION||!Array.isArray(value.citizens)||!value.campaigns||!Array.isArray(value.history)||!Array.isArray(value.effects))return FRESH();
  const s=clone(value);s.seed=String(s.seed||'mango-4001').slice(0,40);s.rng=(Number(s.rng)>>>0)||hash(s.seed)||1;s.tick=clamp(s.tick,0,200000);s.seq=clamp(s.seq,0,10000000);s.step=clamp(s.step,0,10000000);
@@ -53,6 +70,8 @@ function normalize(value){
   const prior=Array.isArray(c.endingsSeen)?c.endingsSeen:[];
   if(c.status==='completed'&&CAMPAIGNS[id].endings[c.ending])prior.push(c.ending);
   c.endingsSeen=[...new Set(prior.filter(ending=>Object.hasOwn(CAMPAIGNS[id].endings,ending)))];
+  c.council=Math.floor(clamp(c.council??0,0,2));
+  c.consultations=Array.isArray(c.consultations)?c.consultations.slice(-12):[];
  }
  s.citizens=s.citizens.filter(c=>c&&typeof c.id==='string').slice(0,8);if(s.citizens.length!==8)s.citizens=PEOPLE();
  return s;
@@ -70,7 +89,52 @@ function event(s,e){
 function changeCitizen(s,actor,headline,impact){
  const who=s.citizens.find(c=>c.id===actor)||s.citizens[0];who.trust=clamp(who.trust+impact,0,100);who.energy=clamp(who.energy-2,0,100);who.mood=impact>=0?'optimistic':'suspicious';who.memory.unshift({at:clock(s),text:String(headline).slice(0,140)});who.memory=who.memory.slice(0,8);
  const rival=s.citizens.find(c=>c.id===who.rival);if(rival){who.relations[rival.id]=clamp((who.relations[rival.id]||0)+(impact>=0?2:-3),-100,100);rival.relations[who.id]=clamp((rival.relations[who.id]||0)+(impact>=0?1:-1),-100,100);}
+ const ally=s.citizens.find(c=>c.id===ALLIES[who.id]);if(ally&&ally.id!==rival?.id){who.relations[ally.id]=clamp((who.relations[ally.id]||0)+(impact>=0?3:-2),-100,100);ally.relations[who.id]=clamp((ally.relations[who.id]||0)+(impact>=0?2:-1),-100,100);}
 }
+// A deterministic public support calculation: character trust, ally confidence,
+// their established bond, rival opposition, energy, and personality alignment.
+// No random rolls and no changes to the existing backup version.
+function support(s,o,stake=null){
+ const actor=s.citizens.find(c=>c.id===o.actor)||s.citizens[0];
+ const ally=s.citizens.find(c=>c.id===ALLIES[actor.id])||actor;
+ const rival=s.citizens.find(c=>c.id===actor.rival)||actor;
+ const allyBond=clamp(actor.relations?.[ally.id]??0,-100,100);
+ const rivalBond=clamp(actor.relations?.[rival.id]??0,-100,100);
+ const alignment=stake?stake.trait===actor.trait:!!TRAIT_SUPPORT[actor.trait]&&TRAIT_SUPPORT[actor.trait]===o.id;
+ const score=Math.round(clamp(actor.trust*.64+ally.trust*.22+(allyBond+100)*.07+(rivalBond+100)*.04+actor.energy*.06-rival.trust*.08+(alignment?6:-2),0,100));
+ return {score,threshold:53,actor:actor.id,ally:ally.id,rival:rival.id,alignment};
+}
+function resolvedChoice(s,id,nodeId,o){
+ const stake=STAKES[`${id}:${nodeId}:${o.id}`];const backing=support(s,o,stake);
+ const rejected=!!stake&&backing.score<backing.threshold;
+ const market=clamp(o.market+(backing.score>=80?2:backing.score<38?-2:0),-8,8);
+ return {...o,market,headline:rejected?stake.headline:o.headline,notes:rejected?stake.detail:o.notes,caseTitle:rejected?(stake.caseTitle||''):o.caseTitle,ending:rejected?stake.fallback:o.to.startsWith('!')?o.to.slice(1):null,rejected,backing};
+}
+// A bounded strategic decision, not a repeatable resource or reward generator.
+// The resulting coalition lasts across campaigns, affects every support vote,
+// and is included in existing backup/checkpoint snapshots.
+function counsel(actorId,approach){return transaction(s=>{
+ const c=s.campaigns[s.active],node=c.status==='active'&&CAMPAIGNS[s.active].nodes[c.node];
+ if(!node||!node.options.some(o=>o.actor===actorId))throw Error('This advisor is not involved in the current decision.');
+ if(!['rally','challenge'].includes(approach))throw Error('Unknown council approach.');
+ if(c.council>=2)throw Error('Your two council briefings for this campaign run are exhausted.');
+ const actor=s.citizens.find(x=>x.id===actorId);if(!actor)throw Error('Advisor not found.');
+ const ally=s.citizens.find(x=>x.id===ALLIES[actor.id]);const rival=s.citizens.find(x=>x.id===actor.rival);
+ if(approach==='rally'){
+  actor.trust=clamp(actor.trust+18,0,100);actor.energy=clamp(actor.energy-5,0,100);
+  if(ally){actor.relations[ally.id]=clamp((actor.relations[ally.id]||0)+14,-100,100);ally.relations[actor.id]=clamp((ally.relations[actor.id]||0)+9,-100,100);}
+  if(rival)rival.trust=clamp(rival.trust-3,0,100);
+ }else{
+  actor.trust=clamp(actor.trust-20,0,100);actor.energy=clamp(actor.energy-5,0,100);
+  if(ally){actor.relations[ally.id]=clamp((actor.relations[ally.id]||0)-12,-100,100);ally.relations[actor.id]=clamp((ally.relations[actor.id]||0)-7,-100,100);}
+  if(rival)rival.trust=clamp(rival.trust+8,0,100);
+ }
+ c.council++;const title=`Council ${approach}: ${actor.name}`;
+ actor.memory.unshift({at:clock(s),text:title});actor.memory=actor.memory.slice(0,8);
+ c.consultations.push({actor:actor.id,approach,at:clock(s)});
+ const id=uid(s);s.history.unshift({id,at:clock(s),kind:'council',title,detail:'A faction relationship changed, altering future votes. No credits awarded.'});s.history=s.history.slice(0,MAX_HISTORY);
+ return {actor:actor.id,approach,remaining:2-c.council};
+});}
 function addEffectsToV2(s,store,from){
  const latest=s.effects[0];if(!latest)return;
  store.events.unshift({id:latest.id,title:latest.headline,detail:'LIVING INTERNET: '+latest.detail,time:latest.at});store.events=store.events.slice(0,35);
@@ -120,17 +184,22 @@ function start(id){if(!CAMPAIGNS[id])return Promise.reject(Error('Unknown campai
 function choose(optionId){return transaction((s,store)=>{
  const id=s.active,c=s.campaigns[id],node=CAMPAIGNS[id]?.nodes[c.node];if(c.status!=='active'||!node)throw Error('Start a campaign before choosing.');
  const o=node.options.find(x=>x.id===optionId);if(!o)throw Error('This decision is not available.');
- const previousNode=c.node;c.decisions.push({node:previousNode,option:o.id,at:clock(s)});c.node=o.to.startsWith('!')?null:o.to;
- if(o.to.startsWith('!')){c.status='completed';c.ending=o.to.slice(1);c.completed++;if(!c.endingsSeen.includes(c.ending))c.endingsSeen.push(c.ending);}
- const e=event(s,{kind:'campaign',...o});changeCitizen(s,o.actor,o.headline,o.market>=0?4:-3);
+ const previousNode=c.node,decision=resolvedChoice(s,id,previousNode,o);
+ c.decisions.push({node:previousNode,option:o.id,at:clock(s),support:decision.backing.score,approved:!decision.rejected,resolvedEnding:decision.ending});
+ c.node=o.to.startsWith('!')?null:o.to;
+ if(o.to.startsWith('!')){c.status='completed';c.ending=decision.ending;c.completed++;if(!c.endingsSeen.includes(c.ending))c.endingsSeen.push(c.ending);}
+ const e=event(s,{kind:decision.rejected?'coalition-veto':'campaign',...decision});
+ changeCitizen(s,o.actor,decision.headline,decision.rejected?-8:decision.market>=0?4:-3);
+ const actor=s.citizens.find(x=>x.id===decision.backing.actor),ally=s.citizens.find(x=>x.id===decision.backing.ally);
+ if(actor&&ally&&actor!==ally){actor.relations[ally.id]=clamp((actor.relations[ally.id]||0)+(decision.rejected?-10:5),-100,100);ally.relations[actor.id]=clamp((ally.relations[actor.id]||0)+(decision.rejected?-7:3),-100,100);}
  addEffectsToV2(s,store,'choice:'+id+':stage-'+(c.decisions.length-1));
  if(c.status==='completed'){
-  const ending=CAMPAIGNS[id].endings[c.ending];event(s,{kind:'ending',headline:`${CAMPAIGNS[id].title} — ${ending}`,actor:o.actor,market:0,notes:'An ending has been recorded in the fictional history.'});
+  const ending=CAMPAIGNS[id].endings[c.ending];event(s,{kind:'ending',headline:`${CAMPAIGNS[id].title} — ${ending}`,actor:o.actor,market:0,notes:decision.rejected?'An unsupported plan failed; the coalition chose a different ending.':'An ending has been recorded in the fictional history.'});
   addEffectsToV2(s,store,'ending:'+id);
  }
- return {campaign:id,decision:o.id,ending:c.ending};
+ return {campaign:id,decision:o.id,ending:c.ending,support:decision.backing.score,approved:!decision.rejected};
 });}
-function replay(id){if(!CAMPAIGNS[id])return Promise.reject(Error('Unknown campaign'));return transaction(s=>{const c=s.campaigns[id];if(c.status!=='completed')throw Error('Finish the campaign before replaying it.');c.run++;c.status='active';c.node=CAMPAIGNS[id].start;c.decisions=[];c.ending=null;s.active=id;s.history.unshift({id:uid(s),at:clock(s),kind:'replay',title:CAMPAIGNS[id].title+' started again',detail:'Previously earned rewards remain claimed.'});return true;});}
+function replay(id){if(!CAMPAIGNS[id])return Promise.reject(Error('Unknown campaign'));return transaction(s=>{const c=s.campaigns[id];if(c.status!=='completed')throw Error('Finish the campaign before replaying it.');c.run++;c.status='active';c.node=CAMPAIGNS[id].start;c.decisions=[];c.ending=null;c.council=0;c.consultations=[];s.active=id;s.history.unshift({id:uid(s),at:clock(s),kind:'replay',title:CAMPAIGNS[id].title+' started again',detail:'Previously earned rewards remain claimed.'});return true;});}
 function advance(hours=1){const n=Math.floor(clamp(hours,1,24));return transaction((s,store)=>{
   for(let i=0;i<n;i++){
    s.tick++;s.step++;
@@ -174,14 +243,14 @@ function mount(){document.body.append(root);document.getElementById('s40-open').
 function open(){lastFocus=document.activeElement;root.querySelector('#s40-backdrop').hidden=false;root.querySelector('#s40-dialog').hidden=false;document.body.classList.add('s40-open');inertBackground(true);render();root.querySelector('#s40-close').focus();}
 function close(){root.querySelector('#s40-backdrop').hidden=true;root.querySelector('#s40-dialog').hidden=true;document.body.classList.remove('s40-open');inertBackground(false);lastFocus?.focus?.();}
 function trap(e){const nodes=[...root.querySelector('#s40-dialog').querySelectorAll('button:not(:disabled),input:not(:disabled),[href],select')].filter(x=>x.offsetParent!==null);if(!nodes.length)return;const first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&document.activeElement===first){last.focus();e.preventDefault();}else if(!e.shiftKey&&document.activeElement===last){first.focus();e.preventDefault();}}
-const btn=(label,action,id='',extra='')=>`<button type="button" data-action="${esc(action)}" data-id="${esc(id)}" class="s40-btn ${extra}">${esc(label)}</button>`;
+const btn=(label,action,id='',extra='',attrs='')=>`<button type="button" data-action="${esc(action)}" data-id="${esc(id)}" class="s40-btn ${extra}" ${attrs}>${esc(label)}</button>`;
 function campaignUI(s){const active=s.active,c=s.campaigns[active],def=CAMPAIGNS[active],node=c.status==='active'?def.nodes[c.node]:null;return `
 <div class="s40-row s40-worldheader"><div><strong>Fictional clock: ${esc(clock(s))}</strong><small>Seed: ${esc(s.seed)} · ${s.history.length} recorded events</small></div><div class="s40-actions">${btn(s.paused?'▶ Resume':'Ⅱ Pause','pause','',s.paused?'':'s40-highlight')}${btn('Advance +1h','advance','1')}${btn('Advance +1 day','advance','24')}</div></div>
 <div class="s40-grid">${Object.entries(CAMPAIGNS).map(([id,d])=>`<article class="s40-card ${active===id?'selected':''}"><h3>${esc(d.title)}</h3><p>${esc(d.description)}</p><small>${esc(s.campaigns[id].status==='completed'?'Ending: '+s.campaigns[id].ending:s.campaigns[id].status)} · ${s.campaigns[id].endingsSeen.length}/${Object.keys(d.endings).length} endings discovered</small><div class="s40-actions">${btn('Explore','select',id)}${s.campaigns[id].status==='not-started'?btn('Start','start',id,'s40-primary'):s.campaigns[id].status==='completed'?btn('Replay','replay',id):''}</div></article>`).join('')}</div>
 <section class="s40-story" aria-label="Current fictional campaign"><p class="s40-overline">CURRENT STORY · ${esc(def.title)}</p><h3>${esc(c.status==='completed'?'Campaign complete':(node?.title||'Ready to begin'))}</h3>
 ${c.status==='completed'?`<p><strong>Ending reached: ${esc(c.ending)}</strong></p><p>${esc(def.endings[c.ending]||'Campaign completed.')}</p>${btn('Replay with different choices','replay',active,'s40-primary')}`:
- node?`<p>${esc(node.text)}</p><div class="s40-options">${node.options.map(o=>`<button class="s40-choice" data-action="choose" data-id="${esc(o.id)}"><strong>${esc(o.label)}</strong><span>${esc(o.notes)}</span><small>${o.market>=0?'+':''}${o.market} VIBE simulated market effect · ${esc((citizens.find(c=>c[0]===o.actor)||citizens[0])[1])}</small></button>`).join('')}</div>`:`<p>${esc(def.description)}</p>${btn('Begin this crisis','start',active,'s40-primary')}`}
-${c.decisions.length?`<h4>Decisions this run</h4><ol>${c.decisions.map(d=>{const o=def.nodes[d.node]?.options.find(x=>x.id===d.option);return `<li>${esc(o?.label||d.option)} — ${esc(o?.headline||d.node)} (${esc(d.at)})</li>`;}).join('')}</ol>`:''}
+ node?`<p>${esc(node.text)}</p><p class="s40-overline">Factions matter. Support combines trust, alliances, rivalries, energy and personality. A pivotal proposal needs 53 support; a failed vote produces an alternative ending.</p><div class="s40-options">${node.options.map(o=>{const vote=resolvedChoice(s,active,c.node,o);const pivotal=!!STAKES[`${active}:${c.node}:${o.id}`];return `<button class="s40-choice" data-action="choose" data-id="${esc(o.id)}"><strong>${esc(o.label)}</strong><span>${esc(o.notes)}</span><small>${o.market>=0?'+':''}${o.market} VIBE base market effect · ${esc((citizens.find(c=>c[0]===o.actor)||citizens[0])[1])}</small><small class="s40-support" ${pivotal?'':'aria-label="Non-pivotal support"'}>${pivotal?`Pivotal vote: ${vote.backing.score}/53 support · ${vote.rejected?'Opposed — alternate outcome':'Backed — proposal likely passes'}`:`Faction support: ${vote.backing.score}/100 · changes reactions`}</small></button>`;}).join('')}</div><section class="s40-council" aria-label="Faction council"><h4>Council briefings: ${c.council} / 2 used this run</h4><p>Rally an advisor to build support, or challenge them to empower the opposition. Each briefing consumes one of two opportunities, with no credit rewards.</p><div class="s40-actions">${[...new Set(node.options.map(o=>o.actor))].map(actorId=>{const person=s.citizens.find(x=>x.id===actorId);return `<div class="s40-council-person"><strong>${esc(person?.name||actorId)}</strong> ${btn('Rally','counsel',actorId+':rally','',`aria-label="Rally ${esc(person?.name||actorId)}" ${c.council>=2?'disabled':''}`)} ${btn('Challenge','counsel',actorId+':challenge','',`aria-label="Challenge ${esc(person?.name||actorId)}" ${c.council>=2?'disabled':''}`)}</div>`;}).join('')}</div></section>`:`<p>${esc(def.description)}</p>${btn('Begin this crisis','start',active,'s40-primary')}`}
+${c.decisions.length?`<h4>Decisions this run</h4><ol>${c.decisions.map(d=>{const o=def.nodes[d.node]?.options.find(x=>x.id===d.option);return `<li>${esc(o?.label||d.option)} — ${esc(o?.headline||d.node)} (${esc(d.at)})${Number.isFinite(d.support)?` · Support ${d.support}/100${d.approved===false?' · Coalition veto':''}`:''}</li>`;}).join('')}</ol>`:''}
 <h4>Endings discovered: ${c.endingsSeen.length} / ${Object.keys(def.endings).length}</h4>
 <ul class="s40-endings">${Object.entries(def.endings).map(([id,ending])=>`<li>${c.endingsSeen.includes(id)?esc(ending):'Undiscovered ending · ???'}</li>`).join('')}</ul></section>`}
 function peopleUI(s){return `<div class="s40-grid">${s.citizens.map(c=>`<article class="s40-card"><p class="s40-overline">${esc(c.trait)} · ${esc(c.mood)}</p><h3>${esc(c.name)}</h3><p>${esc(c.role)}</p><p><strong>Goal:</strong> ${esc(c.goal)}</p><p>Trust ${c.trust}/100 · Energy ${c.energy}/100</p><div class="s40-meter"><i style="width:${c.trust}%"></i></div><h4>Relationships</h4><p>${Object.entries(c.relations||{}).map(([id,n])=>esc((s.citizens.find(x=>x.id===id)||{name:id}).name)+': '+n).join(' · ')||'Unspecified'}</p><h4>Recent memories</h4><ul>${(c.memory||[]).slice(0,3).map(m=>`<li>${esc(m.text)}</li>`).join('')||'<li>Still waiting for the first disaster.</li>'}</ul></article>`).join('')}</div>`;}
@@ -192,7 +261,7 @@ function render(){const out=root.querySelector('#s40-content');if(!out)return;
  // or seed. Re-rendering must not discard the draft or keyboard focus.
  const focused=document.activeElement,within=focused&&out.contains(focused)&&!root.querySelector('#s40-dialog').hidden;
  const focus=within?{id:focused.id||'',action:focused.dataset?.action||'',item:focused.dataset?.id||'',value:focused.matches('input')?focused.value:null,start:focused.matches('input')?focused.selectionStart:null,end:focused.matches('input')?focused.selectionEnd:null}:null;
- const s=state();const choices=[['campaigns','Campaigns'],['people','Citizens'],['timeline','World Timeline'],['saves','Save Slots']];out.innerHTML=`<div class="s40-tabs" role="tablist" aria-label="Living World views">${choices.map(([id,title])=>`<button type="button" role="tab" id="s40-tab-${id}" aria-controls="s40-view" data-action="tab" data-id="${id}" aria-selected="${mode===id}" tabindex="${mode===id?'0':'-1'}">${title}</button>`).join('')}</div><div id="s40-feedback" role="status" aria-live="polite">${esc(lastError||notice||'Choose a fictional action to change the world.')}</div><div class="s40-content" id="s40-view" role="tabpanel" aria-labelledby="s40-tab-${mode}">${mode==='campaigns'?campaignUI(s):mode==='people'?peopleUI(s):mode==='timeline'?timelineUI(s):savesUI(s)}</div><footer class="s40-foot">Clearly fictional satire · Offline deterministic rules · Historical external app effects are never undone by replay.</footer>`;
+ const s=state();const choices=[['campaigns','Campaigns'],['people','Citizens'],['timeline','World Timeline'],['saves','Save Slots']];out.innerHTML=`<div class="s40-tabs" role="tablist" aria-label="Living World views">${choices.map(([id,title])=>`<button type="button" role="tab" id="s40-tab-${id}" aria-controls="s40-view" data-action="tab" data-id="${id}" aria-selected="${mode===id}" tabindex="${mode===id?'0':'-1'}">${title}</button>`).join('')}</div><div id="s40-feedback" role="status" aria-live="polite" tabindex="-1">${esc(lastError||notice||'Choose a fictional action to change the world.')}</div><div class="s40-content" id="s40-view" role="tabpanel" aria-labelledby="s40-tab-${mode}">${mode==='campaigns'?campaignUI(s):mode==='people'?peopleUI(s):mode==='timeline'?timelineUI(s):savesUI(s)}</div><footer class="s40-foot">Clearly fictional satire · Offline deterministic rules · Historical external app effects are never undone by replay.</footer>`;
  if(focus){let next=null;
   if(focus.id)next=out.querySelector(focus.id==='s40-slot-name'?'#s40-slot-name':focus.id==='s40-seed'?'#s40-seed':'#s40-nonexistent');
   if(!next&&focus.action)next=[...out.querySelectorAll('button[data-action]')].find(b=>b.dataset.action===focus.action&&b.dataset.id===focus.item);
@@ -201,11 +270,11 @@ function render(){const out=root.querySelector('#s40-content');if(!out)return;
  }
 }
 async function handle(action,id){try{notice='';lastError='';if(action==='tab'){mode=id;render();return;}let result;
- switch(action){case 'select':result=await transaction(s=>{s.active=id;return id;});break;case 'start':result=await start(id);break;case 'choose':result=await choose(id);break;case 'replay':result=await replay(id);break;case 'pause':result=await togglePause();autoSync();break;case 'advance':result=await advance(Number(id));break;case 'load':result=await loadSlot(id);autoSync();break;case 'sync':result=await reconcile();break;default:return;}
- notice=action==='choose'?'A decision has reshaped the imaginary internet.':action==='advance'?'Time advanced deterministically.':'Saved successfully.';render();}catch(e){lastError=e.message;render();}}
+ switch(action){case 'select':result=await transaction(s=>{s.active=id;return id;});break;case 'start':result=await start(id);break;case 'choose':result=await choose(id);break;case 'replay':result=await replay(id);break;case 'pause':result=await togglePause();autoSync();break;case 'advance':result=await advance(Number(id));break;case 'load':result=await loadSlot(id);autoSync();break;case 'counsel':{const split=id.lastIndexOf(':');result=await counsel(id.slice(0,split),id.slice(split+1));break;}case 'sync':result=await reconcile();break;default:return;}
+ notice=action==='choose'?(result?.approved===false?`Coalition veto: support ${result.support}/53. A different ending was recorded.`:`Coalition decision recorded: support ${result?.support}/100.`):action==='counsel'?`Council decision saved. ${result.remaining} briefings remain this run.`:action==='advance'?'Time advanced deterministically.':'Saved successfully.';render();if(['choose','counsel'].includes(action))root.querySelector('#s40-feedback')?.focus();}catch(e){lastError=e.message;render();}}
 root.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(!b)return;handle(b.dataset.action,b.dataset.id||'');});
 root.addEventListener('submit',e=>{if(!['s40-saveform','s40-seedform'].includes(e.target.id))return;e.preventDefault();const fd=new FormData(e.target),task=e.target.id==='s40-saveform'?saveSlot(fd.get('name')):setSeed(fd.get('seed'));task.then(()=>{notice='Saved successfully.';render();}).catch(err=>{lastError=err.message;render();});});
 root.addEventListener('keydown',e=>{const el=e.target.closest('[role="tab"]');if(!el||!['ArrowRight','ArrowLeft','Home','End'].includes(e.key))return;e.preventDefault();const tabs=[...root.querySelectorAll('[role="tab"]')];let i=tabs.indexOf(el);i=e.key==='Home'?0:e.key==='End'?tabs.length-1:(i+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;mode=tabs[i].dataset.id;render();root.querySelectorAll('[role="tab"]')[i].focus();});
-window.Slop40={get state(){return state()},get campaigns(){return clone(CAMPAIGNS)},start,choose,replay,advance,togglePause,setSeed,saveSlot,loadSlot,reconcile,open,close,describe};
+window.Slop40={get state(){return state()},get campaigns(){return clone(CAMPAIGNS)},start,choose,replay,advance,togglePause,setSeed,saveSlot,loadSlot,counsel,reconcile,open,close,describe};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();
