@@ -26,7 +26,10 @@
  window.dispatchEvent(new CustomEvent('slop:world',{detail:{state:clone(state),saved:true}}));return true;}
  function rebase(){try{const current=JSON.parse(localStorage.getItem(KEY)||'null');
    if(current?.version===2&&Array.isArray(current.events)&&Number.isFinite(Number(current.credits))){
-    if((Number(current.revision)||0)>=(Number(state.revision)||0))state={...state,...current,
+    // localStorage is the authoritative committed snapshot, even if this tab's
+    // cached revision is greater. Cross-tab writes can replace a higher local
+    // revision with a lower one; retaining the stale cache loses real credits.
+    state={...state,...current,
       rewardBudget:current.rewardBudget&&typeof current.rewardBudget==='object'?current.rewardBudget:{}};
    }
   }catch(_){} }

@@ -37,6 +37,13 @@ with sync_playwright() as pw:
       const backup=X.exportPayload();
       out.backup=backup.version===2&&Object.keys(backup.stores).length===4&&X.validateBackup(backup).preview.credits===beforeDuplicate;
       out.backupMarker=backup.stores[S2].rewardClaimsV32['hotfix-mission']===37;
+      // A stale tab can have a higher *cached* revision than the durable
+      // wallet after another tab has written; rebase must still read disk.
+      const disk=JSON.parse(localStorage.getItem(S2));
+      W.state.revision=disk.revision+100;
+      W.state.credits=1;
+      const revived=await W.earn(7,'hotfix stale revision');
+      out.durableRebase=revived===true&&JSON.parse(localStorage.getItem(S2)).credits===disk.credits+7;
       const beforeQuota=JSON.parse(localStorage.getItem(S2)).credits;
       const original=Storage.prototype.setItem;
       // In-memory fake localStorage: override its instance method rather than Storage prototype.
