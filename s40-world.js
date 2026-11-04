@@ -37,6 +37,29 @@ const STAKES={
  'election:ballot:corporate':{trait:'ambitious',fallback:'recount',headline:'CORPORATE MAYOR FAILS THE CONFIDENCE VOTE',detail:'Corporate allies withdraw and the results are invalidated.',caseTitle:'Residents v. The Voting Algorithm'},
  'election:ballot:invalidate':{trait:'combative',fallback:'ceo',headline:'ELECTION CHALLENGE DISMISSED',detail:'The court rejects the complaint, allowing the corporate candidate to claim victory.'}
 };
+// Three authored council hearings per campaign. The same strategy means a
+// different thing to each character; acceptance uses persistent relationships.
+const NEGOTIATION_SCENES={
+ 'mango:hearing:truth':['Dr. Prompt Pigeon','The researcher asks for a reproducible benchmark, not a paid testimonial.','Submit an independent test'],
+ 'mango:hearing:brand':['Gradientina 9000','The brand director will support Mango-as-a-Service only if her coalition believes the pitch.','Negotiate the investor launch'],
+ 'mango:hearing:sue':['Attorney Bot™','The lawyer wants a legal precedent about charts with feelings.','Negotiate courtroom support'],
+ 'cloud:hearing:settle':['Attorney Bot™','The mediator requires signed fictional terms for the server union.','Negotiate the treaty'],
+ 'cloud:hearing:reset':['Sir Stapleton.exe','The auditor demands rollback evidence before touching the production gradient.','Negotiate a safe reboot'],
+ 'cloud:hearing:rights':['Attorney Bot™','The legal representative demands a personhood clause for the cloud.','Negotiate server rights'],
+ 'election:ballot:independent':['Prof. Professor','The dean insists on independently reproducible ballot counts.','Negotiate certification'],
+ 'election:ballot:corporate':['Mango CEO Ultra','The founder wants board support for the subscription mayor.','Negotiate coalition backing'],
+ 'election:ballot:invalidate':['Attorney Bot™','The attorney wants legally usable evidence of impossible voter turnout.','Negotiate an election challenge']
+};
+const AUTONOMOUS={
+ pigeon:['publishes a peer review against the fruit GPU benchmark','organizes an independent fact-checking circle'],
+ gradient:['recruits a brand coalition for the mango empire','leaks a viral marketing manifesto'],
+ stapler:['audits the dashboard and exposes hidden exceptions','organizes an anti-hype review committee'],
+ lawyer:['files an injunction over algorithmic certainty','drafts a fictional citizens-rights amendment'],
+ mango:['funds a midnight founder rally','pressures the board to monetize all fruit'],
+ intern:['leaks a suspicious datacenter memo','coordinates a secret whistleblower network'],
+ satoshi:['bets on a synthetic mango-futures collapse','starts a zero-liquidity trading frenzy'],
+ dean:['publishes an independent election methodology','convenes an ethics panel of eight robots']
+};
 const PEOPLE=()=>citizens.map(([id,name,role,goal,trait,rival])=>({id,name,role,goal,trait,rival,trust:50,energy:70,mood:'undecided',memory:[],relations:{[rival]:-20}}));
 const option=(id,label,to,headline,actor='mango',market=0,notes='',caseTitle='')=>({id,label,to,headline,actor,market,notes,caseTitle});
 const CAMPAIGNS={
@@ -72,6 +95,8 @@ function normalize(value){
   c.endingsSeen=[...new Set(prior.filter(ending=>Object.hasOwn(CAMPAIGNS[id].endings,ending)))];
   c.council=Math.floor(clamp(c.council??0,0,2));
   c.consultations=Array.isArray(c.consultations)?c.consultations.slice(-12):[];
+  c.diplomacy=Math.floor(clamp(c.diplomacy??0,0,2));
+  c.negotiations=Array.isArray(c.negotiations)?c.negotiations.filter(n=>n&&typeof n.key==='string').slice(-12):[];
  }
  s.citizens=s.citizens.filter(c=>c&&typeof c.id==='string').slice(0,8);if(s.citizens.length!==8)s.citizens=PEOPLE();
  return s;
@@ -134,6 +159,36 @@ function counsel(actorId,approach){return transaction(s=>{
  c.consultations.push({actor:actor.id,approach,at:clock(s)});
  const id=uid(s);s.history.unshift({id,at:clock(s),kind:'council',title,detail:'A faction relationship changed, altering future votes. No credits awarded.'});s.history=s.history.slice(0,MAX_HISTORY);
  return {actor:actor.id,approach,remaining:2-c.council};
+});}
+// Negotiations consume a scarce opportunity and can backfire. Each scene is
+// available once per campaign run. Neither success nor failure mints credits.
+function negotiate(optionId,tactic){return transaction((s,store)=>{
+ const id=s.active,c=s.campaigns[id],node=c.status==='active'&&CAMPAIGNS[id].nodes[c.node];
+ if(!node)throw Error('No active negotiation.');
+ const key=`${id}:${c.node}:${optionId}`,scene=NEGOTIATION_SCENES[key];
+ const o=node.options.find(x=>x.id===optionId);
+ if(!scene||!o)throw Error('This hearing has no negotiation scene.');
+ if(!['evidence','deal','pressure'].includes(tactic))throw Error('Unknown proposal.');
+ if(c.diplomacy>=2)throw Error('Both diplomatic opportunities have been used.');
+ if(c.negotiations.some(n=>n.key===key))throw Error('This witness already gave a final answer this run.');
+ const actor=s.citizens.find(x=>x.id===o.actor),ally=s.citizens.find(x=>x.id===ALLIES[o.actor]);
+ const prior=c.decisions.map(x=>x.option),hasProof=prior.some(x=>['audit','publish','document','expose','evidence','poll','question'].includes(x));
+ const accepted=actor.energy>=12&&(
+  tactic==='evidence'?(['curious','skeptical','academic','anxious'].includes(actor.trait)||hasProof&&actor.trust>=55):
+  tactic==='deal'?(['ambitious','optimistic','volatile'].includes(actor.trait)||actor.trust>=72):
+  actor.trait==='combative'&&actor.trust>=35);
+ const delta=accepted?28:-13,relation=accepted?18:-16;
+ actor.trust=clamp(actor.trust+delta,0,100);actor.energy=clamp(actor.energy-(accepted?8:12),0,100);
+ actor.mood=accepted?'committed':'unconvinced';
+ if(ally){actor.relations[ally.id]=clamp((actor.relations[ally.id]||0)+relation,-100,100);ally.trust=clamp(ally.trust+(accepted?8:-5),0,100);}
+ const verdict=accepted?`accepted your ${tactic} proposal and promised faction support`:`rejected the ${tactic} proposal and warned their allies`;
+ const reply=`${actor.name} ${verdict}. ${accepted?'The coalition moves toward the proposal.':'Trust and energy fall; the proposal is at greater risk.'}`;
+ actor.memory.unshift({at:clock(s),text:reply});actor.memory=actor.memory.slice(0,8);
+ const record={key,actor:o.actor,tactic,accepted,at:clock(s),reply};
+ c.diplomacy++;c.negotiations.push(record);
+ const e=event(s,{kind:'negotiation',headline:`${actor.name} ${accepted?'BACKS':'REJECTS'} ${scene[2].toUpperCase()}`,actor:o.actor,market:0,notes:reply});
+ addEffectsToV2(s,store,'negotiation:'+key);
+ return {accepted,actor:o.actor,remaining:2-c.diplomacy,reply};
 });}
 function addEffectsToV2(s,store,from){
  const latest=s.effects[0];if(!latest)return;
@@ -199,12 +254,20 @@ function choose(optionId){return transaction((s,store)=>{
  }
  return {campaign:id,decision:o.id,ending:c.ending,support:decision.backing.score,approved:!decision.rejected};
 });}
-function replay(id){if(!CAMPAIGNS[id])return Promise.reject(Error('Unknown campaign'));return transaction(s=>{const c=s.campaigns[id];if(c.status!=='completed')throw Error('Finish the campaign before replaying it.');c.run++;c.status='active';c.node=CAMPAIGNS[id].start;c.decisions=[];c.ending=null;c.council=0;c.consultations=[];s.active=id;s.history.unshift({id:uid(s),at:clock(s),kind:'replay',title:CAMPAIGNS[id].title+' started again',detail:'Previously earned rewards remain claimed.'});return true;});}
+function replay(id){if(!CAMPAIGNS[id])return Promise.reject(Error('Unknown campaign'));return transaction(s=>{const c=s.campaigns[id];if(c.status!=='completed')throw Error('Finish the campaign before replaying it.');c.run++;c.status='active';c.node=CAMPAIGNS[id].start;c.decisions=[];c.ending=null;c.council=0;c.consultations=[];c.diplomacy=0;c.negotiations=[];s.active=id;s.history.unshift({id:uid(s),at:clock(s),kind:'replay',title:CAMPAIGNS[id].title+' started again',detail:'Previously earned rewards remain claimed.'});return true;});}
 function advance(hours=1){const n=Math.floor(clamp(hours,1,24));return transaction((s,store)=>{
   for(let i=0;i<n;i++){
    s.tick++;s.step++;
-   if(s.tick%4===0){const c=s.citizens[Math.floor(rand(s)*s.citizens.length)];const nouns=['files a complaint about a loading spinner','launches a consultancy on the Moon','starts a highly fictional rumor','issues an emergency productivity memo','declares all revenue forward-looking'];const text=c.name+' '+nouns[Math.floor(rand(s)*nouns.length)];changeCitizen(s,c.id,text,rand(s)>.5?2:-1);
-     const e=event(s,{kind:'citizen',headline:text,actor:c.id,market:Math.floor(rand(s)*5)-2,notes:'Autonomous fictional reaction generated from the saved simulation seed.'});addEffectsToV2(s,store,'tick');
+   if(s.tick%4===0){
+    const c=s.citizens[Math.floor(rand(s)*s.citizens.length)],act=AUTONOMOUS[c.id],initiative=rand(s)<.5?0:1;
+    const ally=s.citizens.find(x=>x.id===ALLIES[c.id]),rival=s.citizens.find(x=>x.id===c.rival);
+    const constructive=c.trust>=45&&c.energy>=16;const text=`${c.name} ${act[initiative]}`;
+    changeCitizen(s,c.id,text,constructive?3:-3);
+    if(constructive&&ally){ally.trust=clamp(ally.trust+3,0,100);c.relations[ally.id]=clamp((c.relations[ally.id]||0)+7,-100,100);}
+    if(!constructive&&rival){rival.trust=clamp(rival.trust-4,0,100);c.relations[rival.id]=clamp((c.relations[rival.id]||0)-9,-100,100);}
+    const market=['satoshi','mango','gradient'].includes(c.id)?(constructive?3:-3):c.id==='stapler'?-2:0;
+    const e=event(s,{kind:'citizen',headline:text,actor:c.id,market,caseTitle:c.id==='lawyer'?'Attorney Bot v. The Simulated Public':'',notes:`${c.goal}. ${constructive?'Built an alliance':'Escalated a rivalry'}; this changes future votes.`});
+    addEffectsToV2(s,store,'tick');
    }
   }
   return {tick:s.tick,events:s.effects.length};
@@ -249,7 +312,7 @@ function campaignUI(s){const active=s.active,c=s.campaigns[active],def=CAMPAIGNS
 <div class="s40-grid">${Object.entries(CAMPAIGNS).map(([id,d])=>`<article class="s40-card ${active===id?'selected':''}"><h3>${esc(d.title)}</h3><p>${esc(d.description)}</p><small>${esc(s.campaigns[id].status==='completed'?'Ending: '+s.campaigns[id].ending:s.campaigns[id].status)} · ${s.campaigns[id].endingsSeen.length}/${Object.keys(d.endings).length} endings discovered</small><div class="s40-actions">${btn('Explore','select',id)}${s.campaigns[id].status==='not-started'?btn('Start','start',id,'s40-primary'):s.campaigns[id].status==='completed'?btn('Replay','replay',id):''}</div></article>`).join('')}</div>
 <section class="s40-story" aria-label="Current fictional campaign"><p class="s40-overline">CURRENT STORY · ${esc(def.title)}</p><h3>${esc(c.status==='completed'?'Campaign complete':(node?.title||'Ready to begin'))}</h3>
 ${c.status==='completed'?`<p><strong>Ending reached: ${esc(c.ending)}</strong></p><p>${esc(def.endings[c.ending]||'Campaign completed.')}</p>${btn('Replay with different choices','replay',active,'s40-primary')}`:
- node?`<p>${esc(node.text)}</p><p class="s40-overline">Factions matter. Support combines trust, alliances, rivalries, energy and personality. A pivotal proposal needs 53 support; a failed vote produces an alternative ending.</p><div class="s40-options">${node.options.map(o=>{const vote=resolvedChoice(s,active,c.node,o);const pivotal=!!STAKES[`${active}:${c.node}:${o.id}`];return `<button class="s40-choice" data-action="choose" data-id="${esc(o.id)}"><strong>${esc(o.label)}</strong><span>${esc(o.notes)}</span><small>${o.market>=0?'+':''}${o.market} VIBE base market effect · ${esc((citizens.find(c=>c[0]===o.actor)||citizens[0])[1])}</small><small class="s40-support" ${pivotal?'':'aria-label="Non-pivotal support"'}>${pivotal?`Pivotal vote: ${vote.backing.score}/53 support · ${vote.rejected?'Opposed — alternate outcome':'Backed — proposal likely passes'}`:`Faction support: ${vote.backing.score}/100 · changes reactions`}</small></button>`;}).join('')}</div><section class="s40-council" aria-label="Faction council"><h4>Council briefings: ${c.council} / 2 used this run</h4><p>Rally an advisor to build support, or challenge them to empower the opposition. Each briefing consumes one of two opportunities, with no credit rewards.</p><div class="s40-actions">${[...new Set(node.options.map(o=>o.actor))].map(actorId=>{const person=s.citizens.find(x=>x.id===actorId);return `<div class="s40-council-person"><strong>${esc(person?.name||actorId)}</strong> ${btn('Rally','counsel',actorId+':rally','',`aria-label="Rally ${esc(person?.name||actorId)}" ${c.council>=2?'disabled':''}`)} ${btn('Challenge','counsel',actorId+':challenge','',`aria-label="Challenge ${esc(person?.name||actorId)}" ${c.council>=2?'disabled':''}`)}</div>`;}).join('')}</div></section>`:`<p>${esc(def.description)}</p>${btn('Begin this crisis','start',active,'s40-primary')}`}
+ node?`<p>${esc(node.text)}</p><p class="s40-overline">Factions matter. Support combines trust, alliances, rivalries, energy and personality. A pivotal proposal needs 53 support; a failed vote produces an alternative ending.</p><div class="s40-options">${node.options.map(o=>{const vote=resolvedChoice(s,active,c.node,o);const pivotal=!!STAKES[`${active}:${c.node}:${o.id}`];return `<button class="s40-choice" data-action="choose" data-id="${esc(o.id)}"><strong>${esc(o.label)}</strong><span>${esc(o.notes)}</span><small>${o.market>=0?'+':''}${o.market} VIBE base market effect · ${esc((citizens.find(c=>c[0]===o.actor)||citizens[0])[1])}</small><small class="s40-support" ${pivotal?'':'aria-label="Non-pivotal support"'}>${pivotal?`Pivotal vote: ${vote.backing.score}/53 support · ${vote.rejected?'Opposed — alternate outcome':'Backed — proposal likely passes'}`:`Faction support: ${vote.backing.score}/100 · changes reactions`}</small></button>`;}).join('')}</div><section class="s40-council" aria-label="Faction council"><h4>Council briefings: ${c.council} / 2 used this run</h4><p>Rally an advisor to build support, or challenge them to empower the opposition. Each briefing consumes one of two opportunities, with no credit rewards.</p><div class="s40-actions">${[...new Set(node.options.map(o=>o.actor))].map(actorId=>{const person=s.citizens.find(x=>x.id===actorId);return `<div class="s40-council-person"><strong>${esc(person?.name||actorId)}</strong> ${btn('Rally','counsel',actorId+':rally','',`aria-label="Rally ${esc(person?.name||actorId)}" ${c.council>=2?'disabled':''}`)} ${btn('Challenge','counsel',actorId+':challenge','',`aria-label="Challenge ${esc(person?.name||actorId)}" ${c.council>=2?'disabled':''}`)}</div>`;}).join('')}</div></section>${Object.keys(NEGOTIATION_SCENES).some(k=>k.startsWith(active+':'+c.node+':'))?`<section class="s40-negotiations" aria-label="Character negotiation scenes"><h4>Character negotiations · ${c.diplomacy}/2 opportunities used</h4><p>Speak directly to a witness. Evidence favors researchers, deals favor founders, and pressure favors lawyers. The wrong approach can damage long-term alliances. Each witness answers once per run; no credits are awarded.</p>${node.options.filter(o=>NEGOTIATION_SCENES[`${active}:${c.node}:${o.id}`]).map(o=>{const key=`${active}:${c.node}:${o.id}`,scene=NEGOTIATION_SCENES[key],record=c.negotiations.find(x=>x.key===key);return `<article class="s40-negotiation"><strong>${esc(scene[0])} · ${esc(scene[2])}</strong><p>${esc(scene[1])}</p>${record?`<p class="s40-reply"><strong>${record.accepted?'Agreement':'Rejected'}:</strong> ${esc(record.reply)}</p>`:`<div class="s40-actions">${['evidence','deal','pressure'].map(t=>btn(({evidence:'Present evidence',deal:'Offer a deal',pressure:'Apply pressure'})[t],'negotiate',o.id+':'+t,'',`aria-label="${({evidence:'Present evidence to',deal:'Offer a deal to',pressure:'Apply pressure to'})[t]} ${esc(scene[0])}" ${c.diplomacy>=2?'disabled':''}`)).join('')}</div>`}</article>`;}).join('')}</section>`:''}`:`<p>${esc(def.description)}</p>${btn('Begin this crisis','start',active,'s40-primary')}`}
 ${c.decisions.length?`<h4>Decisions this run</h4><ol>${c.decisions.map(d=>{const o=def.nodes[d.node]?.options.find(x=>x.id===d.option);return `<li>${esc(o?.label||d.option)} — ${esc(o?.headline||d.node)} (${esc(d.at)})${Number.isFinite(d.support)?` · Support ${d.support}/100${d.approved===false?' · Coalition veto':''}`:''}</li>`;}).join('')}</ol>`:''}
 <h4>Endings discovered: ${c.endingsSeen.length} / ${Object.keys(def.endings).length}</h4>
 <ul class="s40-endings">${Object.entries(def.endings).map(([id,ending])=>`<li>${c.endingsSeen.includes(id)?esc(ending):'Undiscovered ending · ???'}</li>`).join('')}</ul></section>`}
@@ -270,11 +333,11 @@ function render(){const out=root.querySelector('#s40-content');if(!out)return;
  }
 }
 async function handle(action,id){try{notice='';lastError='';if(action==='tab'){mode=id;render();return;}let result;
- switch(action){case 'select':result=await transaction(s=>{s.active=id;return id;});break;case 'start':result=await start(id);break;case 'choose':result=await choose(id);break;case 'replay':result=await replay(id);break;case 'pause':result=await togglePause();autoSync();break;case 'advance':result=await advance(Number(id));break;case 'load':result=await loadSlot(id);autoSync();break;case 'counsel':{const split=id.lastIndexOf(':');result=await counsel(id.slice(0,split),id.slice(split+1));break;}case 'sync':result=await reconcile();break;default:return;}
- notice=action==='choose'?(result?.approved===false?`Coalition veto: support ${result.support}/53. A different ending was recorded.`:`Coalition decision recorded: support ${result?.support}/100.`):action==='counsel'?`Council decision saved. ${result.remaining} briefings remain this run.`:action==='advance'?'Time advanced deterministically.':'Saved successfully.';render();if(['choose','counsel'].includes(action))root.querySelector('#s40-feedback')?.focus();}catch(e){lastError=e.message;render();}}
+ switch(action){case 'select':result=await transaction(s=>{s.active=id;return id;});break;case 'start':result=await start(id);break;case 'choose':result=await choose(id);break;case 'replay':result=await replay(id);break;case 'pause':result=await togglePause();autoSync();break;case 'advance':result=await advance(Number(id));break;case 'load':result=await loadSlot(id);autoSync();break;case 'counsel':{const split=id.lastIndexOf(':');result=await counsel(id.slice(0,split),id.slice(split+1));break;}case 'negotiate':{const split=id.lastIndexOf(':');result=await negotiate(id.slice(0,split),id.slice(split+1));break;}case 'sync':result=await reconcile();break;default:return;}
+ notice=action==='choose'?(result?.approved===false?`Coalition veto: support ${result.support}/53. A different ending was recorded.`:`Coalition decision recorded: support ${result?.support}/100.`):action==='counsel'?`Council decision saved. ${result.remaining} briefings remain this run.`:action==='negotiate'?`${result.reply} ${result.remaining} negotiations remain.`:action==='advance'?'Time advanced deterministically.':'Saved successfully.';render();if(['choose','counsel','negotiate'].includes(action))root.querySelector('#s40-feedback')?.focus();}catch(e){lastError=e.message;render();}}
 root.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(!b)return;handle(b.dataset.action,b.dataset.id||'');});
 root.addEventListener('submit',e=>{if(!['s40-saveform','s40-seedform'].includes(e.target.id))return;e.preventDefault();const fd=new FormData(e.target),task=e.target.id==='s40-saveform'?saveSlot(fd.get('name')):setSeed(fd.get('seed'));task.then(()=>{notice='Saved successfully.';render();}).catch(err=>{lastError=err.message;render();});});
 root.addEventListener('keydown',e=>{const el=e.target.closest('[role="tab"]');if(!el||!['ArrowRight','ArrowLeft','Home','End'].includes(e.key))return;e.preventDefault();const tabs=[...root.querySelectorAll('[role="tab"]')];let i=tabs.indexOf(el);i=e.key==='Home'?0:e.key==='End'?tabs.length-1:(i+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;mode=tabs[i].dataset.id;render();root.querySelectorAll('[role="tab"]')[i].focus();});
-window.Slop40={get state(){return state()},get campaigns(){return clone(CAMPAIGNS)},start,choose,replay,advance,togglePause,setSeed,saveSlot,loadSlot,counsel,reconcile,open,close,describe};
+window.Slop40={get state(){return state()},get campaigns(){return clone(CAMPAIGNS)},start,choose,replay,advance,togglePause,setSeed,saveSlot,loadSlot,counsel,negotiate,reconcile,open,close,describe};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();
