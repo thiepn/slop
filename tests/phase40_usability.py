@@ -1,0 +1,142 @@
+#!/usr/bin/env python3
+"""SLOPOCALYPSE 4.0 usability/pacing acceptance in real Chromium DOM.
+Uses the inherited in-memory localStorage/Web Locks harness. Native origin,
+Firefox/WebKit, multi-tab races, screen readers and physical devices unverified.
+"""
+import sys
+from playwright.sync_api import sync_playwright
+from phase40_qualification import SHIM, inline_html
+
+checks=[];errors=[]
+def check(title,value,expected=True):
+    ok=value==expected
+    checks.append((title,ok))
+    if not ok:print('FAIL',title,repr(value),'expected',repr(expected))
+
+def run():
+    with sync_playwright() as pw:
+        browser=pw.chromium.launch(headless=True,executable_path='/usr/bin/chromium',args=['--no-sandbox'])
+        def make(width=390,clock=False):
+            p=browser.new_page(viewport={'width':width,'height':850},reduced_motion='reduce')
+            p.on('pageerror',lambda e:errors.append(str(e)))
+            if clock:p.clock.install()
+            p.evaluate(SHIM)
+            p.set_content(inline_html('singularity.html'),wait_until='domcontentloaded')
+            p.wait_for_function('()=>Boolean(window.Slop40)')
+            return p
+        def js(p,body):return p.evaluate('async()=>'+body)
+        # Reproduced prior defect: a false paused flag used to abort the whole save.
+        p=make(clock=True)
+        p.locator('#s40-open').click()
+        check('Start is paused',p.evaluate('()=>Slop40.state.paused'))
+        p.get_by_role('button',name='Resume').first.click()
+        check('Resume persists unpaused world',p.evaluate('()=>Slop40.state.paused'),False)
+        p.clock.fast_forward(12010);p.wait_for_timeout(120)
+        check('One open dialog interval advances one hour',p.evaluate('()=>Slop40.state.tick'),9)
+        p.get_by_role('button',name='Close Living Internet').click()
+        saved=p.evaluate('()=>Slop40.state.tick')
+        p.clock.fast_forward(49000);p.wait_for_timeout(120)
+        check('Closed dialog never advances automatically',p.evaluate('()=>Slop40.state.tick'),saved)
+        check('Closing keeps saved pause selection',p.evaluate('()=>Slop40.state.paused'),False)
+        p.locator('#s40-open').click()
+        p.clock.fast_forward(12010);p.wait_for_timeout(120)
+        check('Reopening restores auto progression',p.evaluate('()=>Slop40.state.tick'),saved+1)
+        p.get_by_role('button',name='Pause').first.click()
+        check('Pause persists true',p.evaluate('()=>Slop40.state.paused'))
+        saved=p.evaluate('()=>Slop40.state.tick')
+        p.clock.fast_forward(49000);p.wait_for_timeout(120)
+        check('Explicit pause stops open dialog timer',p.evaluate('()=>Slop40.state.tick'),saved)
+        check('Pacing clearly advertises auto event cadence',p.locator('.s40-pacing').inner_text().find('Every 4 hours')>=0)
+        check('Pacing explains panel-close behavior',p.locator('.s40-pacing').inner_text().find('Closing the dialog suspends')>=0)
+        p.close()
+        # Prerequisites, threshold, costs and declining advice are visible prior to spending actions.
+        p=make(320)
+        js(p,'{await Slop40.start("mango");await Slop40.choose("hype");await Slop40.choose("pump");return true}')
+        p.locator('#s40-open').click()
+        content=p.locator('button.s40-choice[data-id="truth"] .s40-support').inner_text()
+        check('Score shown on 100-point scale', '37/100' in content)
+        check('53-point approval threshold is unambiguous','requires 53' in content)
+        check('Path details remain inspectable','Path -22' in content and 'pump -11' in content)
+        tactics=p.locator('.s40-negotiation').first.locator('.s40-tactic')
+        check('Every negotiation tactic has a prerequisite hint',tactics.count(),3)
+        check('Unsupported evidence gives explicit warning','Missing a research or audit trail' in tactics.nth(0).inner_text())
+        check('Commercial mandate from hype route shown as ready','Groundwork ready' in tactics.nth(1).inner_text())
+        check('Warning states that failed attempts consume budget','A rejection still uses one attempt' in tactics.nth(0).inner_text())
+        check('Witness trust and energy are visible','Trust' in p.locator('.s40-witness').first.inner_text() and 'Energy' in p.locator('.s40-witness').first.inner_text())
+        council=p.locator('.s40-council').inner_text()
+        check('Council reports quantifiable costs','advisor trust +18' in council and 'energy −5' in council)
+        check('Council includes a negative trade-off','rival trust +8' in council)
+        check('All tactic labels remain accessible',p.get_by_role('button',name='Present evidence to Dr. Prompt Pigeon').count(),1)
+        hint=p.get_by_role('button',name='Present evidence to Dr. Prompt Pigeon').get_attribute('aria-describedby')
+        check('Tactic hint is associated with its button for AT',bool(hint) and p.locator('#'+hint).count()==1)
+        check('Associated hint describes missing groundwork','Missing a research' in p.locator('#'+hint).inner_text())
+        check('Narrow dialog has no horizontal overflow',p.evaluate('()=>document.querySelector("#s40-dialog").scrollWidth<=document.querySelector("#s40-dialog").clientWidth'))
+        check('Negotiation hints cause no horizontal overflow',p.evaluate('()=>document.documentElement.scrollWidth<=innerWidth'))
+        before=p.evaluate('()=>SlopWorld.state.credits')
+        p.get_by_role('button',name='Offer a deal to Gradientina 9000').click()
+        check('Negotiation still changes the real campaign',p.evaluate('()=>Slop40.state.campaigns.mango.diplomacy'),1)
+        check('No credits from attempted negotiation',p.evaluate('()=>SlopWorld.state.credits'),before)
+        p.keyboard.press('Escape')
+        check('Dialog closes with Escape',p.locator('#s40-dialog').is_hidden())
+        check('Keyboard focus returns to invoking control',p.evaluate('()=>document.activeElement.id'),'s40-open')
+        p.close()
+        # The timeline can be read without exposing 65 autonomous reports at once.
+        t=make(900)
+        js(t,'{await Slop40.advance(24);await Slop40.start("cloud");await Slop40.choose("listen");return true}')
+        world_before=t.evaluate('()=>JSON.stringify(Slop40.state)')
+        t.locator('#s40-open').click()
+        t.get_by_role('tab',name='World Timeline').click()
+        t.get_by_role('tab',name='World Timeline').focus()
+        t.keyboard.press('ArrowRight')
+        check('Keyboard Right selects and focuses Save Slots',t.get_by_role('tab',name='Save Slots').get_attribute('aria-selected'),'true')
+        t.keyboard.press('ArrowLeft')
+        check('Keyboard Left returns to Timeline',t.get_by_role('tab',name='World Timeline').get_attribute('aria-selected'),'true')
+        check('Mixed timeline includes citizen events',t.locator('.s40-timeline li').count()>=6)
+        t.get_by_role('button',name='Citizen actions').click()
+        check('Citizen filter marks itself selected',t.get_by_role('button',name='Citizen actions').get_attribute('aria-pressed'),'true')
+        check('Citizen filter includes only citizen entries',t.evaluate('()=>[...document.querySelectorAll(".s40-timeline li small")].every(x=>x.textContent.includes("citizen"))'))
+        check('One day has six autonomous actions',t.locator('.s40-timeline li').count(),6)
+        t.get_by_role('button',name='Story & negotiations').click()
+        check('Story filter excludes citizen events',t.evaluate('()=>[...document.querySelectorAll(".s40-timeline li small")].every(x=>!x.textContent.includes("citizen"))'))
+        t.get_by_role('button',name='All',exact=True).click()
+        check('All filter restores complete recent view',t.locator('.s40-timeline li').count()>=6)
+        check('Filtering is read-only',t.evaluate('()=>JSON.stringify(Slop40.state)'),world_before)
+        t.close()
+        # Long sessions: bounded event summaries, no phantom currency, recoverable saves.
+        long=make(1024)
+        wallet=long.evaluate('()=>SlopWorld.state.credits')
+        for _ in range(14):js(long,'{return await Slop40.advance(24)}')
+        st=long.evaluate('()=>Slop40.state')
+        check('14-day long session advances exact simulated time',st['tick'],8+336)
+        check('Long-session retained world history bounded',len(st['history'])<=130)
+        check('Long-session effects bounded',len(st['effects'])<=120)
+        check('Long-session pending projection count stays safe',sum(not x['projected'] for x in st['effects'])<=30)
+        check('Autonomous simulation does not mint credits',long.evaluate('()=>SlopWorld.state.credits'),wallet)
+        payload=long.evaluate('()=>SlopWorld32.exportPayload()')
+        check('Long-session backup retains existing version',payload['version'],2)
+        check('Long-session backup still has four stores',len(payload['stores']),4)
+        check('Long-session backup validates',long.evaluate('(p)=>!!SlopWorld32.validateBackup(p)',payload))
+        original=long.evaluate('()=>({tick:Slop40.state.tick,seed:Slop40.state.seed})')
+        js(long,'{await Slop40.saveSlot("Long session");await Slop40.advance(24);await Slop40.loadSlot("Long session");return true}')
+        check('Long session checkpoint restores tick and seed',long.evaluate('()=>({tick:Slop40.state.tick,seed:Slop40.state.seed})'),original)
+        # Seeded timeline replay remains deterministic and does not introduce nondeterministic wall clock data.
+        def replay(q):
+            return js(q,'{await Slop40.setSeed("usability-fixed");await Slop40.start("mango");await Slop40.choose("audit");await Slop40.choose("publish");await Slop40.advance(24);return JSON.stringify(Slop40.state)}')
+        r1,r2=make(),make()
+        check('Same-seed deterministic trajectory remains byte-identical',replay(r1),replay(r2))
+        # Artificial quota errors cannot modify stored pause, scenario, credits, or timeline.
+        q=make()
+        baseline=q.evaluate('()=>JSON.stringify({phase:Slop40.state,credits:SlopWorld.state.credits})')
+        q.evaluate('()=>window.__denySave=true')
+        try:q.evaluate('async()=>await Slop40.togglePause()');failed=False
+        except Exception:failed=True
+        q.evaluate('()=>window.__denySave=false')
+        check('Pause save rejects quota error',failed)
+        check('Failed pause save rolls back all state',q.evaluate('()=>JSON.stringify({phase:Slop40.state,credits:SlopWorld.state.credits})'),baseline)
+        for x in [long,r1,r2,q]:x.close()
+        browser.close()
+    passed=sum(1 for _,v in checks if v)
+    print(f'PHASE40 USABILITY: {passed}/{len(checks)} PASS; uncaught JavaScript errors={len(errors)}')
+    if errors:print('JS ERRORS',errors[:5])
+    return passed==len(checks) and not errors
+if __name__=='__main__':sys.exit(0 if run() else 1)

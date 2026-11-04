@@ -16,3 +16,15 @@
 .s40-negotiation{padding:11px 0;border-top:1px solid #5f4b79;min-width:0}
 .s40-negotiation>strong{color:#e2fba4}.s40-negotiation .s40-reply{border-left:3px solid #ccff84;padding-left:12px;color:#eff3d9}
 .s40-negotiation .s40-actions{gap:9px}.s40-negotiation .s40-btn{flex:1 1 135px}
+
+/* Phase 4.0 usability: explicit prerequisites, predictable pacing and filtering. */
+.s40-pacing{font-size:12px;padding:9px 12px;margin-top:10px!important;border-left:3px solid #b7ec7b;background:#292043;color:#e1daf1!important}
+.s40-tactic{display:flex;flex:1 1 170px;flex-direction:column;gap:5px;min-width:0}
+.s40-tactic .s40-btn{flex:none;width:100%}
+.s40-tactic small{line-height:1.4;font-size:12px;overflow-wrap:anywhere}
+.s40-ready{color:#d7f5ae}.s40-unready{color:#ffd3a2}
+.s40-witness{font-size:12px;color:#e3d9f2!important}
+.s40-timeline-filters{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.s40-timeline-filters .s40-btn[aria-pressed=true]{border-color:#e7ffa8;background:#557442;color:#fff}
+.s40-timeline-summary{font-size:13px;color:#e7dfa9!important}
+@media(max-width:390px){.s40-tactic{flex-basis:100%}.s40-timeline-filters .s40-btn{flex:1 1 130px}}
