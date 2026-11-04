@@ -178,3 +178,11 @@
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();
+
+/* Phase 4.0 additive loader. Old pages and legacy stores are preserved unchanged. */
+;(()=>{
+  if(window.__SLOP40_INLINE)return; // in-memory qualification substitutes inline assets
+  if(document.querySelector('script[data-s40-loader]'))return;
+  const css=document.createElement('link');css.rel='stylesheet';css.href='s40.css';document.head.appendChild(css);
+  const script=document.createElement('script');script.src='s40-world.js';script.defer=true;script.dataset.s40Loader='true';document.body.appendChild(script);
+})();
