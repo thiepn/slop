@@ -54,3 +54,6 @@
 #s43-dialog label{display:block;font-weight:800;margin-top:14px;margin-bottom:6px}
 @media(max-width:520px){#s43-launch{right:8px;bottom:160px;padding:9px 11px;font-size:12px}#s43-dialog{inset:1%;border-radius:12px}#s43-dialog .s43-head{padding:12px}#s43-dialog #s43-body{padding:12px}#s43-dialog #s43-menu{padding:8px}#s43-dialog .s43-entry{align-items:flex-start;flex-direction:column}#s43-dialog .s43-entry span:last-child{justify-content:flex-start}#s43-dialog .s43-metrics strong{font-size:15px}}
 @media(prefers-reduced-motion:reduce){#s43-dialog,#s43-launch,.s43-card-play{transition:none!important;animation:none!important}}
+#s43-dialog [hidden]{display:none!important}
+#s43-board-search{width:100%;border:1px solid #6d9e90;background:#132d2c;color:#effff9;border-radius:9px;padding:11px 12px;font:600 14px system-ui;min-height:44px}
+#s43-board-status{font-size:12px;color:#c7e4dc;margin:7px 0 12px}
