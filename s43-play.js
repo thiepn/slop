@@ -21,7 +21,7 @@ const resultLabel=r=>!complete(r)?'Unfinished':r.verified?'Qualified with limits
 const btn=(label,cmd,id='',cls='')=>`<button type="button" class="s43-btn ${cls}" data-s43-command="${escape(cmd)}" data-id="${escape(id)}">${escape(label)}</button>`;
 const nav=(title,page)=>`<a href="${escape(page)}" class="s43-link">${escape(title)}</a>`;
 const progress=()=>{const s=read(),done=Object.values(s.cases).filter(complete).length;return {done,departments:Object.keys(s.departments).length};};
-async function commit(fn){if(busy)return false;busy=true;try{
+async function commit(fn){for(let n=0;n<25&&busy;n++)await new Promise(resolve=>setTimeout(resolve,15));if(busy){message='A previous decision is still saving. Reopen the case and try again.';return false;}busy=true;try{
  await X.exclusive(()=>{
   let thrown=null;const ok=W.mutate(world=>{
    const area=world.phase6||(world.phase6={});const s=structuredClone(area.s43?.version===1?area.s43:fresh());
