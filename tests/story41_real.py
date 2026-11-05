@@ -75,6 +75,13 @@ def run(browser_name):
                     stale.locator('#s41-note').get_by_text('Story advanced elsewhere',exact=False).wait_for(timeout=7000)
                     assert page.evaluate('Slop41.active.step')==1,'Stale other-tab click advanced story twice'
                     stale.close()
+                page.wait_for_function("""() => {
+                    const r=Slop41.active;
+                    if(r.completed)return true;
+                    const scene=Slop41.content[r.episode-1]?.scenes[r.step];
+                    const header=document.querySelector('#s41-body .s41-scene h3');
+                    return Boolean(scene && header && header.textContent.trim()===scene.title);
+                }""",timeout=7500)
                 if count in (9,31,47):
                     page.reload(wait_until='load')
                     page.wait_for_function('!!window.Slop41')
