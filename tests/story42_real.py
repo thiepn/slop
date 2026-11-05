@@ -29,6 +29,13 @@ def run(browser):
    page.get_by_role('button',name='Save artifact').click()
    page.wait_for_function('Object.keys(Slop42Discovery.state.saved).length === 1',timeout=15000)
    page.locator('#s42-close').click()
+   # Phase 6's first workbench must not discard newer s42/s43 records
+   # written before phase6.version was initialized.
+   page.wait_for_function('Boolean(window.Slop43)',timeout=25000)
+   page.evaluate('window.Slop43.open()')
+   page.locator('#s43-body [data-s43-command=choose]').first.click()
+   page.wait_for_function("Slop43.state.cases['trust.html']?.stage===1")
+   page.locator('#s43-close').click()
    # Confirm the original 4.0 opening and person panels are still reachable.
    page.evaluate('window.Slop40.open()')
    page.locator('#s40-tab-people').click()
@@ -67,6 +74,9 @@ def run(browser):
     except Exception:
      diagnostic=page.evaluate('''() => ({inMemory:Object.keys(SlopWorld.state?.phase6?.s42Discovery?.saved||{}),disk:Object.keys(JSON.parse(localStorage.getItem('slopocalypse:fictional-internet:v2')||'{}')?.phase6?.s42Discovery?.saved||{}),current:Object.keys(Slop42Discovery.state.saved),page:location.pathname})''')
      raise AssertionError('Discovery persistence mismatch: '+repr(diagnostic))
+    if path=='workspace.html':
+     assert page.evaluate("SlopWorld.state.phase6?.version===1"),'Phase 6 workbench did not initialize correctly'
+     assert page.evaluate("Slop43.state.cases['trust.html']?.stage===1"),'Legacy workbench erased the earlier Case Desk record'
     # At narrow mobile widths the new UI must not cause horizontal document overflow.
     overflow=page.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth')
     if overflow>4:print('Existing or new page overflow:',path,overflow)
