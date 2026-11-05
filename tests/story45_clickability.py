@@ -32,7 +32,14 @@ def run(name):
    opened=0;no_cards=[];keyboard_fallbacks=[]
    for route in routes:
     response=page.goto(base+route,wait_until='domcontentloaded',timeout=30000)
-    assert response and response.status==200,route
+    # WebKit can treat a repeat navigation to the currently loaded
+    # portal document as same-document/no-response (or revalidate a cached
+    # document). Verify the destination and real hydrated controls instead
+    # of conflating transport status with a missing page.
+    status=response.status if response else None
+    assert status in (None,200,304) and page.evaluate("location.pathname")==('/'+route),(route,status,page.url)
+    if status is None:
+     assert route=='portal.html' and page.title(),(route,'Unexpected missing HTTP response')
     page.wait_for_function('Boolean(window.Slop42Discovery && window.Slop43)',timeout=25000)
     page.wait_for_function("""() => [...document.querySelectorAll('.s42-inspectable')]
       .every(c => c.querySelector(':scope > .s42-inspect-action') &&
@@ -75,6 +82,17 @@ def run(name):
     assert page.locator('#s43-dialog').evaluate('(d)=>d.open'),route
     assert page.locator('#s43-body').is_visible(),route
     page.locator('#s43-close').click()
+    if route=='index.html':
+     # The front-page dashboard historically floated continuously; enhanced
+     # controls must remain stable enough for an actual pointer click.
+     assert not any(entry[0]=='index.html' for entry in keyboard_fallbacks),keyboard_fallbacks
+     page.evaluate("document.body.classList.add('slop-overdrive')")
+     moving=page.locator('.artifact.s42-inspectable .s42-inspect-action:visible').first
+     assert moving.count(),'No playable artifacts on the original home page'
+     moving.click(timeout=6000)  # Deliberately no force and no keyboard fallback
+     assert page.locator('#s42-discovery').evaluate('(d)=>d.open'),'Overdrive artifact cannot be inspected by pointer'
+     page.locator('#s42-close').click()
+     page.evaluate("document.body.classList.remove('slop-overdrive')")
     opened+=1
    assert not errors,errors[:10]
    browser.close()
