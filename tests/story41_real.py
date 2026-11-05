@@ -117,7 +117,10 @@ def run(browser_name):
             page.evaluate('Slop41.open()')
             page.get_by_role('tab',name='Story histories').click()
             page.get_by_role('button',name='Begin a new story run').click()
-            assert page.evaluate('Slop41.active.episode')==1
+            # New story creation persists asynchronously under the v32 lock.
+            # Verify the second run was committed and the first remains archived.
+            page.wait_for_function("() => Slop41.state.runs.length===2 && Slop41.active.id==='r2' && Slop41.active.episode===1",timeout=12000)
+            assert page.evaluate('Slop41.state.runs[0].completed'),'New playthrough unexpectedly overwrote the completed original'
             page.get_by_role('button',name='Close story').click()
             page.evaluate('async payload => await SlopWorld32.restoreBackup(payload)',backup)
             page.reload(wait_until='load')
