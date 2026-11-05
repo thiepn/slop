@@ -53,9 +53,12 @@ def run(browser_name=None):
                 page.locator('#s42-main').get_by_role('button',name='Save artifact').click()
                 assert page.evaluate('Object.keys(Slop42Discovery.state.saved).length')==1
                 page.locator('#s42-note').fill('Needs independent replication')
+                # Adding a comparison must not erase an unsaved annotation or lose keyboard focus.
+                page.get_by_role('button',name='Add to comparison').click()
+                assert page.locator('#s42-note').input_value()=='Needs independent replication'
+                assert page.evaluate("document.activeElement.closest('#s42-discovery') !== null")
                 page.get_by_role('button',name='Save annotation').click()
                 assert page.evaluate('Object.values(Slop42Discovery.state.saved)[0].note')=='Needs independent replication'
-                page.get_by_role('button',name='Add to comparison').click()
                 assert page.evaluate('Slop42Discovery.state.compare.length')==1
                 page.locator('#s42-close').click()
                 page.locator('#second .s42-inspect-action').click()
