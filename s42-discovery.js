@@ -64,7 +64,25 @@ function trailProgress(t,s){const docs=Object.values(s.saved);return t.pages.map
 function renderTrails(){const s=state();return `<h3>Cross-app investigations</h3><p>Follow six case files through the fictional internet. Inspect and save at least one exhibit per destination; file the report once all locations are documented.</p>${TRAILS.map(t=>{const progress=trailProgress(t,s),done=progress.every(p=>p.found),reported=!!s.reports[t.id];return `<section class="s42-trail"><h4>${e(t.title)} · ${progress.filter(p=>p.found).length}/${progress.length}</h4><div class="s42-trail-locations">${progress.map(p=>p.found?`<span class="s42-found" title="Artifact saved from ${e(p.page)}">✓ ${e(pageLabel(p.page))}</span>`:link('Explore '+pageLabel(p.page),p.page)).join('')}</div>${reported?`<p class="s42-status"><strong>Report filed.</strong> ${e(t.finding)}</p>`:done?button('File documented finding','report',t.id,'s42-main'):'<p class="s42-muted">Missing locations must be investigated, not auto-completed.</p>'}</section>`;}).join('')}`;}
 function renderDirectory(){const list=apps();return `<h3>Explore ${list.length} fictional destinations</h3><p>Navigate directly to existing interactive services. Choose a destination, investigate its cards, and connect discoveries across the internet.</p><label class="s42-field">Search destinations<input type="search" data-s42-filter placeholder="Search apps and locations" aria-label="Search destination list"></label><div class="s42-list" data-s42-list>${list.map(x=>`<div class="s42-result" data-search="${e((x[0]+' '+x[1]+' '+(x[3]||'')).toLowerCase())}"><span><strong>${e(x[1])}</strong><small>${e(x[3]||x[0])}</small></span>${link('Open',x[0])}</div>`).join('')}</div>`;}
 function tabHTML(){const s=state();return `<nav class="s42-tabs" aria-label="Discovery views">${[['page','This page'],['detail','Inspect'],['saved','Shelf ('+Object.keys(s.saved).length+')'],['compare','Compare ('+s.compare.length+')'],['trails','Investigations'],['directory','All apps']].map(([id,label])=>`<button type="button" data-s42-action="tab" data-id="${id}" aria-pressed="${id===tab?'true':'false'}">${e(label)}</button>`).join('')}</nav>`;}
-function render(){if(!modal?.open)return;const main=modal.querySelector('#s42-main');modal.querySelector('#s42-tabs').innerHTML=tabHTML();main.innerHTML=tab==='page'?renderPage():tab==='detail'?renderDetail():tab==='saved'?renderSaved():tab==='compare'?renderCompare():tab==='trails'?renderTrails():renderDirectory();status('');}
+function render(){if(!modal?.open)return;
+ const main=modal.querySelector('#s42-main'),tabs=modal.querySelector('#s42-tabs'),previous=document.activeElement;
+ const inMain=!!main?.contains(previous),inTabs=!!tabs?.contains(previous);
+ const oldAction=previous?.dataset?.s42Action,oldId=previous?.dataset?.id;
+ const itemId=tab==='detail'?String(selected||''):'';
+ const preserve=!!itemId&&modal.dataset.s42RenderedItem===itemId;
+ const drafts=preserve?[...main.querySelectorAll('textarea,input')].filter(x=>x.id).map(x=>({id:x.id,value:x.value,focused:x===previous,start:x.selectionStart,end:x.selectionEnd})):[];
+ tabs.innerHTML=tabHTML();
+ main.innerHTML=tab==='page'?renderPage():tab==='detail'?renderDetail():tab==='saved'?renderSaved():tab==='compare'?renderCompare():tab==='trails'?renderTrails():renderDirectory();
+ modal.dataset.s42RenderedItem=itemId;status('');
+ for(const draft of drafts){const field=[...main.querySelectorAll('textarea,input')].find(x=>x.id===draft.id);
+  if(field){field.value=draft.value;if(draft.focused){field.focus({preventScroll:true});if(draft.start!=null&&typeof field.setSelectionRange==='function')field.setSelectionRange(draft.start,draft.end);return;}}}
+ if(inMain||inTabs){const region=inTabs?tabs:main;
+  const same=oldAction?[...region.querySelectorAll('[data-s42-action]')].find(x=>x.dataset.s42Action===oldAction&&x.dataset.id===oldId):null;
+  if(same){same.focus({preventScroll:true});return;}
+  if(inMain){const next=main.querySelector('h3,h4')||main;next.tabIndex=-1;next.focus({preventScroll:true});}
+  else tabs.querySelector('[aria-pressed="true"]')?.focus({preventScroll:true});
+ }
+}
 function updateButton(){const btn=document.querySelector('#s42-launch');if(btn)btn.textContent='Discover · '+Object.keys(state().saved).length+' saved';}
 function open(id){if(!modal)return;priorFocus=document.activeElement;if(id){selected=id;tab='detail';}else if(tab==='detail'&&!selected)tab='page';if(!modal.open)modal.showModal();render();modal.querySelector('#s42-close')?.focus({preventScroll:true});}
 function close(){if(modal?.open)modal.close();priorFocus?.focus?.({preventScroll:true});}
