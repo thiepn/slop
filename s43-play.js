@@ -29,8 +29,8 @@ async function commit(fn){for(let n=0;n<25&&busy;n++)await new Promise(resolve=>
    s.version=1;s.history=(s.history||[]).slice(-180);
    s.items=Object.fromEntries(Object.entries(s.items||{}).slice(-200));area.s43=s;
   });if(!ok)throw thrown||Error('The local story record could not be saved.');
- });message='Recorded in this browser. No campaign credits were changed.';setTimeout(()=>{render();busy=false;},85);return true;
- }catch(err){message=String(err?.message||err);setTimeout(()=>{render();busy=false;},85);return false;}}
+ });message='Recorded in this browser. No campaign credits were changed.';busy=false;render();return true;
+ }catch(err){message=String(err?.message||err);busy=false;render();return false;}}
 function record(s,kind,title,detail){s.history.unshift({kind,title,detail,at:new Date().toISOString()});}
 function go(t,page){tab=t;if(page)current=page;else if(t==='mission'&&!caseFor(current))current=PAGE;message='';render();}
 function open(t='mission',page=PAGE){if(!dialog)return;lastFocus=document.activeElement;tab=t;current=safePage(page)||PAGE;message='';if(!dialog.open)dialog.showModal();render();dialog.querySelector('#s43-close')?.focus();}
