@@ -235,3 +235,24 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
+
+
+/* Phase 4.3 — forty-four optional local micro-missions and department reviews.
+   The original 4.0 resolver and every native page control remain authoritative. */
+;(()=>{
+ if(window.__SLOP43_INLINE||document.querySelector('script[data-s43-loader]'))return;
+ let started=false;
+ const load=src=>new Promise((resolve,reject)=>{
+  const s=document.createElement('script');s.src=src;s.dataset.s43Loader='true';
+  s.onload=resolve;s.onerror=()=>reject(new Error('Micro-mission script unavailable: '+src));
+  document.body.appendChild(s);
+ });
+ async function boot(){
+  if(started||!window.SlopWorld||!window.SlopWorld32)return;
+  started=true;
+  const style=document.createElement('link');style.rel='stylesheet';style.href='s43.css';document.head.appendChild(style);
+  try{await load('s43-cases.js');await load('s43-play.js');}
+  catch(err){console.warn('Optional forty-four-page micro-missions unavailable:',err.message);}
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
