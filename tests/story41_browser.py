@@ -30,7 +30,7 @@ try:
    if state['completed']:break
    id=state['id'];typ=state['type']
    if typ=='campaign':page.get_by_role('button',name='Confirm authentic campaign progress').click()
-   elif typ=='operator':page.get_by_role('button',name=re.compile('^Offer qualified assurance')).click()
+   elif typ=='operator':page.get_by_role('button',name=re.compile('^Request documented assent')).click()
    elif typ=='final':page.get_by_role('button',name='Submit recorded review').click()
    elif id=='08-test':page.get_by_role('button',name='Decline prospective profiling').click()
    elif id=='08-consent':page.get_by_role('button',name='Decline further personal inference').click()
