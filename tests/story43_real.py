@@ -34,7 +34,13 @@ def run(engine_name):
    p.get_by_role('button',name='44 cases').click()
    assert p.locator('.s43-entry').count()==44
    p.locator('#s43-close').click()
-   p.evaluate('window.Slop40.open()');p.locator('#s40-shell').wait_for(state='visible');p.evaluate('window.Slop40.close()')
+   # The outer s40 shell is a container, not the visible modal. Assert the
+   # actual 4.0 dialog and its native close control, then restore the page.
+   p.evaluate('window.Slop40.open()')
+   p.locator('#s40-dialog').wait_for(state='visible',timeout=10000)
+   assert p.get_by_role('button',name='Close Living Internet').is_visible()
+   p.get_by_role('button',name='Close Living Internet').click()
+   assert p.locator('#s40-dialog').is_hidden()
    assert p.evaluate('document.documentElement.scrollWidth-document.documentElement.clientWidth')<=4
    assert not issues,issues[:4]
    b.close()
