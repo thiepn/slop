@@ -62,7 +62,11 @@ def run(browser):
      assert page.locator('.slop-tile .s42-inspect-action').count()>=10
     if path=='slopnews.html':
      page.locator('.s3-item .s42-inspect-action').first.wait_for(timeout=7000)
-    page.wait_for_function('Object.keys(Slop42Discovery.state.saved).length === 1',timeout=15000),path
+    try:
+     page.wait_for_function('Object.keys(Slop42Discovery.state.saved).length === 1',timeout=6000)
+    except Exception:
+     diagnostic=page.evaluate('''() => ({inMemory:Object.keys(SlopWorld.state?.phase6?.s42Discovery?.saved||{}),disk:Object.keys(JSON.parse(localStorage.getItem('slopocalypse:fictional-internet:v2')||'{}')?.phase6?.s42Discovery?.saved||{}),current:Object.keys(Slop42Discovery.state.saved),page:location.pathname})''')
+     raise AssertionError('Discovery persistence mismatch: '+repr(diagnostic))
     # At narrow mobile widths the new UI must not cause horizontal document overflow.
     overflow=page.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth')
     if overflow>4:print('Existing or new page overflow:',path,overflow)
