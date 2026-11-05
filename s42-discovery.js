@@ -29,7 +29,7 @@ const sameSiteLinks=node=>[...node.querySelectorAll('a[href]')].map(a=>({href:sa
 function excerpt(node){const clone=node.cloneNode(true);clone.querySelectorAll('script,style,.s42-inspect-action,svg,canvas,.slop-chart,.slop-spiral,.slop-circle').forEach(x=>x.remove());return (clone.textContent||'').replace(/\s+/g,' ').trim().slice(0,900);}
 function titleOf(node,n){let title=(node.querySelector('h3,h2,h4,.sx-card-title,.s2-tag,.slop-tag,.slop-kpi')?.textContent||'').trim().replace(/\s+/g,' ');if(!title)title='Exhibit '+(n+1);return title.slice(0,112);}
 function infoFor(node,n){const title=titleOf(node,n),id=PAGE+':'+(n+1)+':'+title.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,44);return {id,title,page:PAGE,kind:category(PAGE),text:excerpt(node),links:sameSiteLinks(node)};}
-function attach(){const nodes=[...document.querySelectorAll(CARD)];nodes.forEach((node,index)=>{
+function attach(){for(const [id,entry] of cards)if(!entry.node.isConnected)cards.delete(id);const nodes=[...document.querySelectorAll(CARD)];nodes.forEach((node,index)=>{
  if(node.dataset.s42Inspect||node.closest(SKIP))return;
  if(node.parentElement?.closest(CARD))return;
  if(!excerpt(node)||excerpt(node).length<20)return;
