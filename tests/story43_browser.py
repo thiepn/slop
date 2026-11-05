@@ -90,7 +90,7 @@ def run(browser_name):
      page.wait_for_function("(id)=>Slop43.state.cross[id]?.stage===1",arg=x['id'])
      page.locator('[data-s43-command=cross-file][data-id=mediate]').click()
      page.wait_for_function("(id)=>Slop43.state.cross[id]?.stage===2",arg=x['id'])
-     assert page.get_by_text('Request coordinated correction').count()==0  # Actual outcome text, not a dead button
+     assert page.get_by_text(x['resolutions']['mediate']).is_visible(),'The chosen response must have its own visible consequence'
      page.locator('[data-s43-command=tab][data-id=cross]').click()
     assert page.evaluate('Slop43.progress.cross')==8
     page.reload();page.wait_for_function('Boolean(window.Slop43)')
