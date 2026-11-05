@@ -28,7 +28,7 @@ function commit(s,data,choice,world){const r=active(s),scene=current(r,data);if(
  if(id==='skip'&&!r.review.authority||id==='skip'&&!r.review.qualified){r.review.position=6;r.choices[scene.id]='unqualified-review';event(r,scene);advance(r,data);return 6;}
  const op=OPERATORS[r.review.position];if(!op)throw Error('All operators have responded');if(!['yes','pending','no'].includes(id))throw Error('Select an operator response');if(id==='yes'&&(!r.review.qualified||!r.review.authority))throw Error('Final assent requires a qualified, authorized proposal');r.review.assents[op]=id;r.review.position++;if(r.review.position===6){r.choices[scene.id]='operators-recorded';event(r,scene);advance(r,data);}return r.review.position;
 }else if(scene.type==='final'){
- if(id!=='submit'&&id!=='defer')throw Error('Choose to submit or defer');r.outcome=id==='defer'?'DEFERRED':ratify(r);r.choices[scene.id]=id;
+ if(id!=='submit'&&id!=='defer')throw Error('Choose to submit or defer');r.outcome=id==='defer'?'DEFERRED':ratify(r);r.choices[scene.id]=id;if(ARCHITECTURES.includes(r.outcome))r.effectQueue.push({id:r.id+':final:'+r.outcome,headline:'FINAL OBJECTIVE REVIEW: '+TITLES[r.outcome].toUpperCase()+' APPROVED FOR CONSENTING SERVICES',projected:false});
 }else{
  const options=scene.options||[];if(options.length&&!options.some(x=>x.id===id))throw Error('Unknown narrative option');if(!options.length&&id!=='continue')throw Error('Expected continue');r.choices[scene.id]=id;
  if(scene.id==='08-test'&&id!=='decline'&&!r.testConsent)throw Error('A separate voluntary test authorization is required');
