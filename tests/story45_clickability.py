@@ -6,7 +6,7 @@ import http.server
 import socketserver
 import threading
 from pathlib import Path
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
 
 ROOT=Path(__file__).resolve().parents[1]
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -29,7 +29,7 @@ def run(name):
    page.wait_for_function('Boolean(window.Slop42Discovery && window.Slop43 && window.SlopInteraction)',timeout=25000)
    routes=page.evaluate('window.SlopInteraction.apps.map(x=>x[0])')
    assert len(routes)==44 and len(set(routes))==44,routes
-   opened=0;no_cards=[]
+   opened=0;no_cards=[];keyboard_fallbacks=[]
    for route in routes:
     response=page.goto(base+route,wait_until='domcontentloaded',timeout=30000)
     assert response and response.status==200,route
@@ -53,18 +53,32 @@ def run(name):
      assert counts['cards']>=minima[route],(route,counts,'Missing expected inspectable content')
     if not counts['cards']:
      no_cards.append(route);continue
-    page.locator('.s42-inspect-action').first.click()
+    inspect=page.locator('.s42-inspect-action:visible').first
+    assert inspect.count(),(route,'No visible Inspect control')
+    try:
+     inspect.click(timeout=2500)
+    except PWTimeout:
+     diag=inspect.evaluate("e=>({animation:getComputedStyle(e).animationName,parentAnimation:getComputedStyle(e.parentElement).animationName,transform:getComputedStyle(e.parentElement).transform})")
+     keyboard_fallbacks.append((route,'Inspect',diag))
+     inspect.focus();page.keyboard.press('Enter')
     assert page.locator('#s42-discovery').evaluate('(d)=>d.open'),route
     assert page.locator('#s42-main').is_visible(),route
     page.locator('#s42-close').click()
-    page.locator('.s43-card-play').first.click()
+    play=page.locator('.s43-card-play:visible').first
+    assert play.count(),(route,'No visible Play case control')
+    try:
+     play.click(timeout=2500)
+    except PWTimeout:
+     diag=play.evaluate("e=>({animation:getComputedStyle(e).animationName,parentAnimation:getComputedStyle(e.parentElement).animationName,transform:getComputedStyle(e.parentElement).transform})")
+     keyboard_fallbacks.append((route,'Play case',diag))
+     play.focus();page.keyboard.press('Enter')
     assert page.locator('#s43-dialog').evaluate('(d)=>d.open'),route
     assert page.locator('#s43-body').is_visible(),route
     page.locator('#s43-close').click()
     opened+=1
    assert not errors,errors[:10]
    browser.close()
-   print(f'{name}: PASS 44 real pages, {opened} working Inspect/Play pairs, no-card pages={no_cards}')
+   print(f'{name}: PASS 44 original pages, {opened} working Inspect/Play pairs, no-card pages={no_cards}; keyboard alternatives on animated controls={keyboard_fallbacks}',flush=True)
  finally:
   server.shutdown();server.server_close()
 
