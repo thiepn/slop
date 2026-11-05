@@ -1,0 +1,41 @@
+name: Nine-episode authored-story qualification (no deployment)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-rules:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax checks
+        run: |
+          node --check s41-rules.js
+          node --check s41-content.js
+          node --check s41-story.js
+          node --check s41-test.cjs
+      - name: Nine-episode graph and final ratification cases
+        run: node s41-test.cjs
+
+  native-story-interface:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Chromium Playwright
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Browser-local authored-story smoke test
+        run: python tests/story41_browser.py
