@@ -56,6 +56,12 @@ def run(browser):
     page.goto(base+'/'+path,wait_until='domcontentloaded',timeout=30000)
     page.wait_for_function('Boolean(window.Slop42Discovery)',timeout=25000)
     assert page.locator('#s42-launch').count()==1,path
+    if path=='index.html':
+     page.locator('.artifact .s42-inspect-action').first.wait_for(timeout=7000)
+     assert page.locator('.artifact .s42-inspect-action').count()>=10
+     assert page.locator('.slop-tile .s42-inspect-action').count()>=10
+    if path=='slopnews.html':
+     page.locator('.s3-item .s42-inspect-action').first.wait_for(timeout=7000)
     page.wait_for_function('Object.keys(Slop42Discovery.state.saved).length === 1',timeout=15000),path
     # At narrow mobile widths the new UI must not cause horizontal document overflow.
     overflow=page.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth')
