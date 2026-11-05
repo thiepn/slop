@@ -19,6 +19,18 @@ function chapter(r,data){return data[r.episode-1];}
 function current(r,data){return chapter(r,data)?.scenes[r.step]||null;}
 function verifyCampaign(id,c,def){if(!CAMPAIGNS.includes(id))throw Error('Unsupported campaign');if(!c||c.status!=='completed'||!Array.isArray(c.decisions)||c.decisions.length!==3||!def||!def.nodes)throw Error('A complete 4.0 campaign with three verifiable decisions is required.');let node=def.start;for(const d of c.decisions){if(d.node!==node||!validString(d.option))throw Error('Campaign route differs from original source');const option=def.nodes[node]?.options?.find(x=>x.id===d.option);if(!option)throw Error('Unknown campaign decision');node=option.to;}const fin=c.decisions[2];const mapping=FALLBACK[id][fin.option];if(!mapping||!node.startsWith('!')||!Number.isFinite(Number(fin.support))||typeof fin.approved!=='boolean')throw Error('Invalid final coalition record');const approved=fin.support>=53;if(fin.approved!==approved)throw Error('Coalition approval conflicts with support');const expected=mapping[approved?0:1];if(c.ending!==expected||fin.resolvedEnding!==expected)throw Error('Recorded ending conflicts with 4.0 resolver');return {campaign:id,decisions:clone(c.decisions),ending:expected,proposal:fin.option,approved,support:fin.support,sourceRun:c.run??null,verified:true};}
 function bind(r,id,c,def){if(own(r.bindings,id))return r.bindings[id];const verified=verifyCampaign(id,c,def);verified.bindingId=r.id+':'+id+':'+Object.keys(r.bindings).length;r.bindings[id]=verified;return verified;}
+function assurance(r,operator){
+ if(!OPERATORS.includes(operator))return {ready:false,reason:'Unknown signatory'};
+ if(!r.review.authority||!r.review.qualified)return {ready:false,reason:'The charter or safeguards are not qualified'};
+ if(!r.bindings.mango||!r.bindings.cloud||!r.bindings.election)return {ready:false,reason:'Historical campaigns are not all bound'};
+ if(operator==='news'&&r.choices['03-disclosure']==='sensational'&&!r.artifacts['CORRECTION-PUBLIC'])return {ready:false,reason:'Correct the sensational D.O.E. report'};
+ if(operator==='government'&&r.bindings.election.decisions[0]?.option==='bot'&&!r.artifacts['ACK-BOT'])return {ready:false,reason:'Acknowledge the imaginary-voter drive accurately'};
+ if(operator==='book'&&!r.artifacts['FB-01'])return {ready:false,reason:'The user-preference experiment has not been recorded'};
+ if(operator==='cloud'&&!r.artifacts['CLD-01'])return {ready:false,reason:'The cloud incident lacks a bound record'};
+ if(operator==='coin'&&!r.artifacts['MNG-01'])return {ready:false,reason:'The original commercial dispute lacks a bound record'};
+ if(operator==='ads'&&!r.artifacts['DOE-01'])return {ready:false,reason:'The recommendation trace is unavailable'};
+ return {ready:true,reason:'Qualified assurance is available for explicit operator assent'};
+}
 function grant(r,defs){for(const x of defs||[]){if(!own(r.artifacts,x.id))r.artifacts[x.id]={status:x.status||'obtained',source:x.source||'authored-fiction',privacy:x.privacy||'public'};}}
 function event(r,scene){const id=r.id+':'+String(r.episode).padStart(2,'0')+':'+scene.id;if(r.events.some(x=>x.id===id))return;const entry={id,title:scene.title,chapter:r.episode};r.events.push(entry);if(r.events.length>180)r.events=r.events.slice(-180);if(scene.effect)r.effectQueue.push({id,headline:scene.effect,projected:false});}
 function advance(r,data){r.step++;if(r.step>=chapter(r,data).scenes.length){if(r.episode===9){r.completed=true;r.step=chapter(r,data).scenes.length-1;}else{r.episode++;r.step=0;}}}
@@ -26,7 +38,7 @@ function commit(s,data,choice,world){const r=active(s),scene=current(r,data);if(
  const c=world?.campaigns?.[scene.campaign],def=world?.definitions?.[scene.campaign];if(!c)throw Error('Existing 4.0 world is not ready');if(scene.require==='opening'){if(c.status==='not-started'||(c.status==='active'&&c.decisions.length<1))throw Error('Complete the first authentic 4.0 campaign decision');}else{bind(r,scene.campaign,c,def);}r.choices[scene.id]='campaign';
 }else if(scene.type==='operator'){
  if(id==='skip'&&!r.review.authority||id==='skip'&&!r.review.qualified){r.review.position=6;r.choices[scene.id]='unqualified-review';event(r,scene);advance(r,data);return 6;}
- const op=OPERATORS[r.review.position];if(!op)throw Error('All operators have responded');if(!['yes','pending','no'].includes(id))throw Error('Select an operator response');if(id==='yes'&&(!r.review.qualified||!r.review.authority))throw Error('Final assent requires a qualified, authorized proposal');r.review.assents[op]=id;r.review.position++;if(r.review.position===6){r.choices[scene.id]='operators-recorded';event(r,scene);advance(r,data);}return r.review.position;
+ const op=OPERATORS[r.review.position];if(!op)throw Error('All operators have responded');if(!['yes','pending','no'].includes(id))throw Error('Select an operator response');if(id==='yes'){const offer=assurance(r,op);if(!offer.ready)throw Error(offer.reason);}r.review.assents[op]=id;r.review.position++;if(r.review.position===6){r.choices[scene.id]='operators-recorded';event(r,scene);advance(r,data);}return r.review.position;
 }else if(scene.type==='final'){
  if(id!=='submit'&&id!=='defer')throw Error('Choose to submit or defer');r.outcome=id==='defer'?'DEFERRED':ratify(r);r.choices[scene.id]=id;if(ARCHITECTURES.includes(r.outcome))r.effectQueue.push({id:r.id+':final:'+r.outcome,headline:'FINAL OBJECTIVE REVIEW: '+TITLES[r.outcome].toUpperCase()+' APPROVED FOR CONSENTING SERVICES',projected:false});
 }else{
@@ -37,10 +49,11 @@ function commit(s,data,choice,world){const r=active(s),scene=current(r,data);if(
  if(scene.id==='09-authority')r.review.authority=id==='verify'&&['CHR-01','CHR-01A','CHR-01B','AUTH-OPS'].every(k=>r.artifacts[k]?.status==='corroborated');
  if(scene.id==='09-qualify')r.review.qualified=id==='qualified'&&r.review.authority&&r.review.proposal!==null&&['DOE-01','DOE-02','FB-01','HUM-REVIEW'].every(k=>!!r.artifacts[k]);
  if(scene.id==='09-plan'&&id==='reset')r.review.proposal='reset';
+ if(scene.id==='09-remediate'){if(['correct','both'].includes(id))r.artifacts['CORRECTION-PUBLIC']={status:'corroborated',source:'fictional-public-correction',privacy:'public'};if(['acknowledge','both'].includes(id))r.artifacts['ACK-BOT']={status:'corroborated',source:'fictional-election-disclosure',privacy:'public'};}
  if(scene.id==='07-policy')r.artifacts['PILOT-07']={status:id==='reviewed'?'corroborated':'obtained',source:'fictional-local-review',privacy:'public'};
 }
  grant(r,scene.grants);event(r,scene);advance(r,data);return r.choices[scene.id];}
 function ratify(r){const rev=r.review;if(!rev.authority)return 'AUTHORITY_HOLD';if(!rev.qualified)return 'QUALIFICATION_HOLD';const yes=OPERATORS.filter(o=>rev.assents[o]==='yes').length;if(rev.proposal==='reset')return yes===6?'reset':'NOT_RATIFIED_UNANIMITY';if(ARCHITECTURES.includes(rev.proposal))return yes>=4?rev.proposal:'NOT_RATIFIED';return 'DEFERRED';}
 function status(r){return {episode:r.episode,step:r.step,outcome:r.outcome,completed:r.completed,consent:r.consent,artifacts:Object.keys(r.artifacts).length,bindings:Object.keys(r.bindings).length};}
-return {CAMPAIGNS,OPERATORS,ARCHITECTURES,TITLES,FALLBACK,fresh,normalize,active,newRun,selectRun,current,verifyCampaign,bind,commit,ratify,status,grant};
+return {CAMPAIGNS,OPERATORS,ARCHITECTURES,TITLES,FALLBACK,fresh,normalize,active,newRun,selectRun,current,verifyCampaign,bind,commit,ratify,status,grant,assurance};
 });
