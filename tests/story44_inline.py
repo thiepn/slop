@@ -47,12 +47,12 @@ def run(name):
   page.locator('#s43-close').click()
   page.locator('#s43-launch').click()
   page.locator('[data-s43-command=choose]').first.click()
-  page.wait_for_function("Slop43.state.cases['index.html']?.stage===1")
+  assert page.evaluate("Slop43.state.cases['index.html']?.stage===1"), "A rapid 1-stage case click was not saved immediately"
   correct=page.evaluate("Slop43.cases.find(c=>c.page==='index.html').correct")
   page.locator(f'[data-s43-command=answer][data-id="{correct}"]').click()
-  page.wait_for_function("Slop43.state.cases['index.html']?.stage===2")
+  assert page.evaluate("Slop43.state.cases['index.html']?.stage===2"), "A rapid 2-stage case click was not saved immediately"
   page.locator('[data-s43-command=publish]').click()
-  page.wait_for_function("Slop43.state.cases['index.html']?.stage===3")
+  assert page.evaluate("Slop43.state.cases['index.html']?.stage===3"), "A rapid 3-stage case click was not saved immediately"
   page.evaluate("""() => {
    const group=Slop43Cases.groups.find(g=>g.pages.includes('index.html'));
    SlopWorld.mutate(w=>{
@@ -68,11 +68,11 @@ def run(name):
   assert page.evaluate("!Slop43Cases.groups.some(g=>g.pages.includes('index.html')&&Boolean(Slop43.state.departments[g.id]))")
   assert page.evaluate("Slop43.state.policy===null")
   page.locator('[data-s43-command=choose]').first.click()
-  page.wait_for_function("Slop43.state.cases['index.html']?.stage===1")
+  assert page.evaluate("Slop43.state.cases['index.html']?.stage===1"), "A rapid 1-stage case click was not saved immediately"
   page.locator(f'[data-s43-command=answer][data-id="{correct}"]').click()
-  page.wait_for_function("Slop43.state.cases['index.html']?.stage===2")
+  assert page.evaluate("Slop43.state.cases['index.html']?.stage===2"), "A rapid 2-stage case click was not saved immediately"
   page.locator('[data-s43-command=private]').click()
-  page.wait_for_function("Slop43.state.cases['index.html']?.stage===3")
+  assert page.evaluate("Slop43.state.cases['index.html']?.stage===3"), "A rapid 3-stage case click was not saved immediately"
   page.get_by_role('button',name='44 cases').click()
   page.locator('[data-s43-command=department]').first.click()
   page.locator('[data-s43-command=dept-choice][data-id$=review]').click()
