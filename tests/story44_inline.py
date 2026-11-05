@@ -19,7 +19,8 @@ BOOT = """() => {
  }};
  window.SlopWorld32={exclusive:async fn=>fn()};
  window.Slop42Discovery={catalog:[{id:'local-card',title:'Local exhibit',
-  page:'index.html',text:'A fictional assertion requiring independent evidence.'}],close(){}};
+  page:'index.html',text:'A fictional assertion requiring independent evidence.'},
+  {id:'market-card',title:'Market exhibit',page:'index.html',text:'Another fictional observation.'}],close(){}};
 }"""
 def run(name):
  with sync_playwright() as pw:
@@ -27,13 +28,15 @@ def run(name):
   page=browser.new_page(viewport={'width':375,'height':800})
   page.set_default_timeout(10000)
   errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
-  page.set_content('<!doctype html><html><body><article class="s42-inspectable" data-s42-inspect="local-card"><h3>Fictional exhibit</h3><p>A claim requiring external verification.</p><button>Original inspect</button></article></body></html>')
+  page.set_content('<!doctype html><html><body><article class="s42-inspectable" data-s42-inspect="local-card"><h3>Fictional exhibit</h3><p>A claim requiring external verification.</p><button>Original inspect</button></article><article class="s42-inspectable" data-s42-inspect="market-card"><h3>Market exhibit</h3><p>Another item with a different purpose.</p></article></body></html>')
   page.evaluate(BOOT)
   page.add_style_tag(content=(ROOT/'s43.css').read_text())
   page.add_script_tag(content=(ROOT/'s43-cases.js').read_text())
   page.add_script_tag(content=(ROOT/'s43-play.js').read_text())
   page.wait_for_function('Boolean(window.Slop43)')
-  assert page.locator('.s43-card-play').count()==1
+  assert page.locator('.s43-card-play').count()==2
+  labels=page.locator('.s43-card-play').evaluate_all("(xs)=>xs.map(x=>x.getAttribute('aria-label'))")
+  assert len(set(labels))==2 and 'Local exhibit' in labels[0] and 'Market exhibit' in labels[1],labels
   assert page.get_by_role('button',name='Original inspect').count()==1
   # Previously a delayed redraw after classifying an exhibit could replace a
   # freshly typed annotation before the save handler read its textarea.
