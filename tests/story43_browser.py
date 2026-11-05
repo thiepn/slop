@@ -61,7 +61,10 @@ def run(browser_name):
     page.locator('#s43-launch').click();page.locator('[data-s43-command=tab][data-id=board]').click()
     assert page.locator('[data-s43-command=department]').count()==11
     for n in range(11):
-     page.locator('[data-s43-command=department]').first.click()
+     # After filing a dossier, its Review/revise action remains available.
+     # Select an *unfiled* department rather than revisiting the first filed one.
+     assert page.get_by_role('button',name='Convene department review').count() == 11-n
+     page.get_by_role('button',name='Convene department review').first.click()
      page.locator('[data-s43-command=dept-choice]').first.click()
      page.wait_for_function('(n)=>Object.keys(Slop43.state.departments).length === n',arg=n+1)
     assert page.locator('[data-s43-command=policy]').count()==1
