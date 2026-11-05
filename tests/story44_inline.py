@@ -41,12 +41,19 @@ def run(name):
   page.get_by_role('button',name='Challenge the claim').click()
   page.wait_for_function("Slop43.state.items['local-card']?.position==='challenge'")
   page.locator('#s43-exhibit-note').fill('Evidence status: not independently corroborated.')
+  # A storage update must not erase an unsaved, focused annotation.
+  page.evaluate("""() => window.dispatchEvent(new StorageEvent('storage',
+    {key:'slopocalypse:fictional-internet:v2'}))""")
+  assert page.locator('#s43-exhibit-note').input_value()=='Evidence status: not independently corroborated.'
+  assert page.evaluate("document.activeElement.id==='s43-exhibit-note'")
   page.get_by_role('button',name='Save this observation').click()
   page.wait_for_function("Slop43.state.items['local-card']?.note?.startsWith('Evidence status:')")
   assert page.locator('#s43-exhibit-note').input_value().startswith('Evidence status:')
   page.locator('#s43-close').click()
   page.locator('#s43-launch').click()
-  page.locator('[data-s43-command=choose]').first.click()
+  page.locator('[data-s43-command=choose]').first.focus()
+  page.keyboard.press('Enter')
+  assert page.evaluate("document.activeElement.closest('#s43-body') !== null"), "Keyboard focus escaped the case desk after a new scene"
   assert page.evaluate("Slop43.state.cases['index.html']?.stage===1"), "A rapid 1-stage case click was not saved immediately"
   correct=page.evaluate("Slop43.cases.find(c=>c.page==='index.html').correct")
   page.locator(f'[data-s43-command=answer][data-id="{correct}"]').click()
