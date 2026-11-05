@@ -19,7 +19,10 @@ const PROVIDERS=['MangoDB','SlopSlack','Cloud of Thoughts','Spreadsheets 9001','
 const PRICES={free:{label:'Freeish',monthly:0,perks:['1 thought/day','Unlimited disclaimers']},pro:{label:'Pro Max Ultra',monthly:60,perks:['Everything is more purple','Synthetic premium support']},enterprise:{label:'Enterprise ∞',monthly:180,perks:['Board-approved confusion','A dedicated imaginary account manager']}};
 const initial=()=>({version:1,activity:[],rewards:[],inventory:[],generator:{projects:[]},workspace:{tasks:[]},agents:{hires:[],jobs:[]},support:{tickets:[]},docs:{requests:[]},integrations:{providers:{}},investors:{decks:[],rounds:[]},pricing:{plan:'free',cycle:'monthly',history:[]},careers:{applications:[]},awards:{certs:[]},merch:{cart:{},orders:[]},community:{threads:[]},newsroom:{releases:[]}});
 const object=x=>x&&typeof x==='object'&&!Array.isArray(x);
-function ensure(s){if(!object(s.phase6)||s.phase6.version!==1){s.phase6=initial();return s.phase6;}
+function ensure(s){if(!object(s.phase6)){s.phase6=initial();return s.phase6;}
+ // Discovery/story/case-desk may have written the shared phase6 namespace before
+ // a Phase 6 workbench is visited. Add legacy defaults without erasing those saves.
+ if(s.phase6.version!==1)s.phase6={...initial(),...s.phase6,version:1};
  const p=s.phase6,d=initial();for(const [k,v] of Object.entries(d)){if(!(k in p)||(Array.isArray(v)&&!Array.isArray(p[k]))||(object(v)&&!object(p[k])))p[k]=structuredClone(v);}
  for(const k of Object.keys(d).filter(k=>object(d[k])))for(const [a,v] of Object.entries(d[k]))if(!(a in p[k])||(Array.isArray(v)&&!Array.isArray(p[k][a]))||(object(v)&&!object(p[k][a])))p[k][a]=structuredClone(v);
  return p;}
