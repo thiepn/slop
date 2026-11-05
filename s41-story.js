@@ -64,9 +64,11 @@ function read(){let disk=null;try{disk=JSON.parse(localStorage.getItem('slopocal
 function world(){const state=window.Slop40.state;return {campaigns:state.campaigns,definitions:window.Slop40.campaigns};}
 function active(){return Rules.active(read());}
 function progressLabel(run){return 'EP '+String(run.episode).padStart(2,'0')+' / 09 · '+(run.completed?'FINISHED':'SCENE '+(run.step+1));}
-let storyRedrawTimer=0;
-function scheduleStoryRedraw(){clearTimeout(storyRedrawTimer);storyRedrawTimer=setTimeout(()=>{render();working=false;},80);}
-async function mutation(fn){if(working)return;working=true;try{const result=await X.exclusive(()=>{let ret,err=null;const ok=W.mutate(v=>{const s=Rules.normalize(v.phase41);try{ret=fn(s,{campaigns:v.phase40?.campaigns,definitions:window.Slop40.campaigns});}catch(e){err=e;throw e}v.phase41=s;});if(!ok)throw err||Error('Story progress could not be saved. Storage may be unavailable or full.');return ret;});notice='Progress saved locally.';scheduleStoryRedraw();Promise.resolve().then(project);return result;}catch(e){notice=String(e.message||e);scheduleStoryRedraw();}}
+// A committed decision must update the scene before the next keyboard or pointer action.
+// The previous delayed redraw left the old choice interactive and could silently drop
+// a second click while the dialog still displayed a stale scene.
+function finishStoryMutation(){working=false;render();}
+async function mutation(fn){if(working)return;working=true;try{const result=await X.exclusive(()=>{let ret,err=null;const ok=W.mutate(v=>{const s=Rules.normalize(v.phase41);try{ret=fn(s,{campaigns:v.phase40?.campaigns,definitions:window.Slop40.campaigns});}catch(e){err=e;throw e}v.phase41=s;});if(!ok)throw err||Error('Story progress could not be saved. Storage may be unavailable or full.');return ret;});notice='Progress saved locally.';finishStoryMutation();Promise.resolve().then(project);return result;}catch(e){notice=String(e.message||e);finishStoryMutation();}}
 // New authored events use a bounded retryable outbox; no credits or market trades.
 let projecting=false;
 async function project(){if(projecting)return;projecting=true;try{await X.exclusive(async()=>{
