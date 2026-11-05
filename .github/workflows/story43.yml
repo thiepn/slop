@@ -39,7 +39,7 @@ jobs:
         run: python tests/story44_inline.py --browser '${{ matrix.browser }}'
       - name: Exercise all 44 cases and 11 dossiers on a local-only site
         run: python tests/story43_browser.py --browser '${{ matrix.browser }}'
-      - name: Preserve original site functionality
-        run: python tests/story43_real.py --browser '${{ matrix.browser }}'
       - name: Audit all 44 original page card actions without mutating campaigns
         run: python tests/story45_clickability.py --browser '${{ matrix.browser }}'
+      - name: Preserve original site functionality
+        run: python tests/story43_real.py --browser '${{ matrix.browser }}'
