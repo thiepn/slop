@@ -186,3 +186,37 @@
   const css=document.createElement('link');css.rel='stylesheet';css.href='s40.css';document.head.appendChild(css);
   const script=document.createElement('script');script.src='s40-world.js';script.defer=true;script.dataset.s40Loader='true';document.body.appendChild(script);
 })();
+
+
+/* Phase 4.1 — authored story, additive to original 4.0 and v32 backups. */
+;(()=>{
+  if(window.__SLOP41_INLINE||document.querySelector('script[data-s41-story]'))return;
+  let started=false;
+  const load=(src)=>new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src=src;
+    script.dataset.s41Story='true';
+    script.onload=resolve;
+    script.onerror=()=>reject(new Error('Story script unavailable: '+src));
+    document.body.appendChild(script);
+  });
+  async function boot(){
+    if(started||!window.Slop40||!window.SlopWorld||!window.SlopWorld32)return;
+    started=true;
+    const style=document.createElement('link');
+    style.rel='stylesheet';
+    style.href='s41.css';
+    document.head.appendChild(style);
+    try{
+      await load('s41-rules.js');
+      await load('s41-content.js');
+      await load('s41-story.js');
+    }catch(err){console.warn('Optional authored story unavailable:',err.message);}
+  }
+  function ready(){
+    const s40=document.querySelector('script[data-s40-loader]');
+    if(window.Slop40)boot();
+    else if(s40)s40.addEventListener('load',boot,{once:true});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready,{once:true});else ready();
+})();
