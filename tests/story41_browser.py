@@ -52,7 +52,7 @@ try:
   assert not errors,errors
   width=page.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth')
   assert width<=1,'Mobile horizontal overflow: '+str(width)
-  page.get_by_role('button',name='Evidence journal').click()
+  page.get_by_role('tab',name='Evidence journal').click()
   assert page.get_by_text('Bound campaign history').is_visible()
   page.get_by_role('button',name='Close story').click()
   assert not page.locator('#s41-dialog').is_visible()
