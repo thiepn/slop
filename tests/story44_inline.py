@@ -35,6 +35,16 @@ def run(name):
   page.wait_for_function('Boolean(window.Slop43)')
   assert page.locator('.s43-card-play').count()==1
   assert page.get_by_role('button',name='Original inspect').count()==1
+  # Previously a delayed redraw after classifying an exhibit could replace a
+  # freshly typed annotation before the save handler read its textarea.
+  page.evaluate("Slop43.openExhibit({id:'local-card',title:'Local exhibit',text:'A fictional assertion requiring independent evidence.',page:'index.html'})")
+  page.get_by_role('button',name='Challenge the claim').click()
+  page.wait_for_function("Slop43.state.items['local-card']?.position==='challenge'")
+  page.locator('#s43-exhibit-note').fill('Evidence status: not independently corroborated.')
+  page.get_by_role('button',name='Save this observation').click()
+  page.wait_for_function("Slop43.state.items['local-card']?.note?.startsWith('Evidence status:')")
+  assert page.locator('#s43-exhibit-note').input_value().startswith('Evidence status:')
+  page.locator('#s43-close').click()
   page.locator('#s43-launch').click()
   page.locator('[data-s43-command=choose]').first.click()
   page.wait_for_function("Slop43.state.cases['index.html']?.stage===1")
