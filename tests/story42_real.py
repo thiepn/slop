@@ -27,7 +27,7 @@ def run(browser):
    page.locator('.slop-card .s42-inspect-action').first.click()
    assert page.locator('#s42-discovery').evaluate('(el)=>el.open')
    page.get_by_role('button',name='Save artifact').click()
-   assert page.evaluate('Object.keys(Slop42Discovery.state.saved).length')==1
+   page.wait_for_function('Object.keys(Slop42Discovery.state.saved).length === 1',timeout=15000)
    page.locator('#s42-close').click()
    # Confirm the original 4.0 opening and person panels are still reachable.
    page.evaluate('window.Slop40.open()')
@@ -38,12 +38,13 @@ def run(browser):
    page.evaluate('window.Slop40.close()')
    page.goto(base+'/slopnews.html')
    page.wait_for_function('Boolean(window.Slop42Discovery)',timeout=25000)
-   assert page.evaluate('Object.keys(Slop42Discovery.state.saved).length')==1
+   page.wait_for_function('Object.keys(Slop42Discovery.state.saved).length === 1',timeout=15000)
    page.locator('#s42-launch').click()
    page.get_by_role('button',name='Investigations').click()
    assert page.locator('.s42-trail').count()==6
    page.locator('#s42-close').click()
    # The authored story remains functional; its journal controls open real records.
+   page.wait_for_function('Boolean(window.Slop41)',timeout=25000)
    page.evaluate('window.Slop41.open()')
    page.locator('[data-view="journal"]').click()
    page.locator('#s41-dialog').wait_for(state='visible')
@@ -55,7 +56,7 @@ def run(browser):
     page.goto(base+'/'+path,wait_until='domcontentloaded',timeout=30000)
     page.wait_for_function('Boolean(window.Slop42Discovery)',timeout=25000)
     assert page.locator('#s42-launch').count()==1,path
-    assert page.evaluate('Object.keys(Slop42Discovery.state.saved).length')==1,path
+    page.wait_for_function('Object.keys(Slop42Discovery.state.saved).length === 1',timeout=15000),path
     # At narrow mobile widths the new UI must not cause horizontal document overflow.
     overflow=page.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth')
     if overflow>4:print('Existing or new page overflow:',path,overflow)
