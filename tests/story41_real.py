@@ -7,7 +7,7 @@ import argparse, re, os
 from pathlib import Path
 from threading import Thread
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
 ROOT=Path(__file__).resolve().parents[1]
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self,*a,**kw):super().__init__(*a,directory=str(ROOT),**kw)
@@ -41,6 +41,7 @@ def run(browser_name):
             credits=page.evaluate('SlopWorld.state.credits')
             page.locator('#s41-launch').click()
             assert page.locator('#s41-dialog').is_visible(), 'Story modal failed to open'
+            page.evaluate('''() => {window.__storyMutationCount=0;new MutationObserver(() => window.__storyMutationCount++).observe(document.querySelector('#s41-body'),{childList:true});}''')
             stale=context.new_page()
             stale.goto(url,wait_until='load')
             stale.wait_for_function('!!window.Slop41')
@@ -52,7 +53,12 @@ def run(browser_name):
                 state=page.evaluate('''()=>{const r=Slop41.active;const c=Slop41.content[r.episode-1].scenes[r.step];return {id:c.id,type:c.type,completed:r.completed}}''')
                 if state['completed']:break
                 id=state['id'];typ=state['type']
-                if typ=='campaign':page.get_by_role('button',name='Confirm authentic campaign progress').click()
+                if typ=='campaign':
+                    try:page.get_by_role('button',name='Confirm authentic campaign progress').click(timeout=7500)
+                    except PWTimeout:
+                        diagnostic=page.evaluate('''() => ({chapter:Slop41.active.episode,step:Slop41.active.step,scene:Slop41.content[Slop41.active.episode-1].scenes[Slop41.active.step].id,buttonCount:document.querySelectorAll('#s41-body button[data-id="campaign"]').length,modal:!!document.querySelector('#s41-dialog:not([hidden])'),note:document.querySelector('#s41-note')?.textContent,mutations:window.__storyMutationCount||0})''')
+                        print('CHROMIUM_DIAGNOSTIC',browser_name,diagnostic,flush=True)
+                        raise
                 elif typ=='operator':page.get_by_role('button',name=re.compile('^Request documented assent')).click()
                 elif typ=='final':page.get_by_role('button',name='Submit recorded review').click()
                 elif id=='08-test':page.get_by_role('button',name='Decline prospective profiling').click()
