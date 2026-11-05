@@ -47,6 +47,10 @@ def run(name):
     }""")
     assert counts['cards']==counts['inspect']==counts['play'],(route,counts)
     assert counts['unnamed']==0,(route,counts)
+    # Prevent a false pass when dynamic s42/s43 enhancement has not hydrated.
+    minima={'index.html':10,'portal.html':40,'trust.html':5,'slopnews.html':1}
+    if route in minima:
+     assert counts['cards']>=minima[route],(route,counts,'Missing expected inspectable content')
     if not counts['cards']:
      no_cards.append(route);continue
     page.locator('.s42-inspect-action').first.click()
