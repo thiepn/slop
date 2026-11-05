@@ -5,3 +5,9 @@
 @media(prefers-reduced-motion:reduce){.s42-inspectable,#s42-discovery *,#s42-launch{animation:none!important;transition:none!important}}
 /* Inline inspectors stay inside the original story / living-world dialogs. */
 #s41-root .s42-story-inspect,#s40-shell .s42-world-profile{border:1px solid #c49fed;border-radius:8px;background:#39235e;color:#fff;padding:6px 11px;font:700 12px/1.35 system-ui,sans-serif;min-height:32px;cursor:pointer;margin:4px 6px;vertical-align:middle}#s41-root .s42-story-inspect:hover,#s40-shell .s42-world-profile:hover{background:#65418e}#s41-root .s42-story-inspect:focus-visible,#s40-shell .s42-world-profile:focus-visible,#s41-root .s42-story-detail button:focus-visible{outline:3px solid #d8ff9f;outline-offset:2px}#s41-root .s42-story-detail{border:1px solid #a17cd2;background:#211737;border-radius:13px;padding:16px;margin:18px 0;overflow-wrap:anywhere}#s41-root .s42-story-detail .s42-kicker{font-size:11px;letter-spacing:.08em;color:#d3bbf0}#s41-root .s42-story-detail .s42-evidence{background:#322545;padding:10px;border-radius:9px;line-height:1.55}#s41-root .s42-story-detail button{border:1px solid #9974c2;border-radius:8px;background:#3c2a58;color:#fff;min-height:38px;padding:8px 13px;cursor:pointer;margin:5px}#s40-shell .s42-world-response{border:1px solid #8466b1;border-radius:9px;background:#211837;padding:12px;margin-top:9px}#s40-shell .s42-world-response strong{display:block;color:#f3edff}#s40-shell .s42-world-response p{overflow-wrap:anywhere}
+/* Inspect and Play controls need a stationary hit target. The original home
+   dashboard continuously floats and overdrive shakes artifact cards, making
+   physical pointer clicks unreliable even though keyboard activation works.
+   Stop only the motion around enhanced interactive cards; keep all other
+   SLOPOCALYPSE animations and original controls intact. */
+.dashboard:has(.s42-inspectable),body.slop-overdrive .artifact.s42-inspectable{animation:none!important}
