@@ -73,7 +73,7 @@ def run(browser_name):
     page.wait_for_function('Slop43.state.policy === "Shared evidence standard"')
     # Cross-platform comparisons force two source cases to be completed first.
     # The choice affects an independently reported, replay-invalidated finding.
-    page.locator('[data-s43-command=tab][data-id=cross]').click()
+    page.locator('#s43-menu [data-s43-command=tab][data-id=cross]').click()
     cross=page.evaluate('Slop43Cases.cross')
     assert len(cross)==8
     for idx,x in enumerate(cross):
@@ -91,7 +91,7 @@ def run(browser_name):
      page.locator('[data-s43-command=cross-file][data-id=mediate]').click()
      page.wait_for_function("(id)=>Slop43.state.cross[id]?.stage===2",arg=x['id'])
      assert page.get_by_text(x['resolutions']['mediate']).is_visible(),'The chosen response must have its own visible consequence'
-     page.locator('[data-s43-command=tab][data-id=cross]').click()
+     page.locator('#s43-menu [data-s43-command=tab][data-id=cross]').click()
     assert page.evaluate('Slop43.progress.cross')==8
     page.reload();page.wait_for_function('Boolean(window.Slop43)')
     assert page.evaluate('Slop43.progress.cross')==8,'Cross-case findings were lost on reload'
@@ -101,7 +101,7 @@ def run(browser_name):
     page.wait_for_function("() => !Slop43.state.cross['forecast-ad']")
     assert page.evaluate('Slop43.progress.cross')==7,'Unrelated cross-service findings must survive source replay'
     assert page.evaluate("Slop43.state.history.some(e=>e.kind==='Comparison invalidated')")
-    page.locator('[data-s43-command=tab][data-id=cross]').click()
+    page.locator('#s43-menu [data-s43-command=tab][data-id=cross]').click()
     assert page.locator('[data-s43-command=cross-open]').count()==8
     assert not errors,errors[:5]
     assert page.evaluate('document.documentElement.scrollWidth-document.documentElement.clientWidth')<=4
