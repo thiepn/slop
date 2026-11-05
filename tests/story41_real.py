@@ -50,7 +50,7 @@ def run(browser_name):
             count=0
             while count<95:
                 count+=1
-                state=page.evaluate('''()=>{const r=Slop41.active;const c=Slop41.content[r.episode-1].scenes[r.step];return {id:c.id,type:c.type,completed:r.completed}}''')
+                state=page.evaluate('''()=>{const r=Slop41.active;const c=Slop41.content[r.episode-1].scenes[r.step];return {id:c.id,type:c.type,episode:r.episode,step:r.step,position:r.review.position,completed:r.completed}}''')
                 if state['completed']:break
                 id=state['id'];typ=state['type']
                 if typ=='campaign':
@@ -71,17 +71,25 @@ def run(browser_name):
                     assert buttons.count(), f'No story choice at {id}'
                     buttons.first.click()
                 if count==1:
+                    page.wait_for_function('Slop41.active.step===1',timeout=12000)
                     stale.locator('#s41-body button[data-action="commit"]').first.click()
                     stale.locator('#s41-note').get_by_text('Story advanced elsewhere',exact=False).wait_for(timeout=7000)
                     assert page.evaluate('Slop41.active.step')==1,'Stale other-tab click advanced story twice'
                     stale.close()
+                # Require an actual committed transition. The operator hearing intentionally
+                # reuses the same scene for six signatories; heading equality alone is not progress.
+                page.wait_for_function("""(previous) => {
+                    const r=Slop41.active;
+                    return r.completed || r.episode!==previous.episode || r.step!==previous.step ||
+                        r.review.position!==previous.position;
+                }""",arg=state,timeout=12000)
                 page.wait_for_function("""() => {
                     const r=Slop41.active;
                     if(r.completed)return true;
                     const scene=Slop41.content[r.episode-1]?.scenes[r.step];
                     const header=document.querySelector('#s41-body .s41-scene h3');
                     return Boolean(scene && header && header.textContent.trim()===scene.title);
-                }""",timeout=7500)
+                }""",timeout=10000)
                 if count in (9,31,47):
                     page.reload(wait_until='load')
                     page.wait_for_function('!!window.Slop41')
