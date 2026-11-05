@@ -6,6 +6,14 @@ const FALLBACK={mango:{truth:['verified','trial'],brand:['unicorn','trial'],sue:
 const OPERATORS=['news','book','ads','coin','cloud','government'];
 const ARCHITECTURES=['verified','empire','autonomy','reset'];
 const TITLES={verified:'Verified Internet',empire:'Infinite Engagement Empire',autonomy:'Autonomous Civilization',reset:'Great Reset'};
+
+const OUTCOME_EVENTS={
+ verified:['SLOPNEWS: Sources and uncertainty now accompany eligible factual claims','SLOPADS: Sponsored promotions display their provenance','SLOPBOOK: Civil disagreement remains permitted without false verification'],
+ empire:['SLOPADS: The disclosed entertainment marketplace opens to consenting services','SLOPBOOK: Voluntary entertainment feeds retain a real exit control','SLOPCOIN: Fictional market speculation continues with explicit risk notices'],
+ autonomy:['SLOPBOOK: Participating communities publish their own interaction priorities','SLOPCLOUD: Cross-service scheduling requires new local agreements','SLOPGOVERNMENT: Local authority and common appeals remain in tension'],
+ reset:['SLOPGOVERNMENT: The inherited coordination charter has been archived','SLOPCLOUD: Staged transition preserves previously approved operational commitments','SLOPNEWS: Old reports and correction records survive the new mandate']
+};
+
 const clone=x=>JSON.parse(JSON.stringify(x));
 const own=(obj,key)=>Object.prototype.hasOwnProperty.call(obj||{},key);
 const validString=x=>typeof x==='string'&&x.length<=120;
@@ -40,7 +48,7 @@ function commit(s,data,choice,world){const r=active(s),scene=current(r,data);if(
  if(id==='skip'&&!r.review.authority||id==='skip'&&!r.review.qualified){r.review.position=6;r.choices[scene.id]='unqualified-review';event(r,scene);advance(r,data);return 6;}
  const op=OPERATORS[r.review.position];if(!op)throw Error('All operators have responded');if(!['request','pending','no'].includes(id))throw Error('Select an operator response');if(id==='request'){const offer=assurance(r,op);if(!offer.ready)throw Error(offer.reason);}r.review.assents[op]=id==='request'?'yes':id;r.review.position++;if(r.review.position===6){r.choices[scene.id]='operators-recorded';event(r,scene);advance(r,data);}return r.review.position;
 }else if(scene.type==='final'){
- if(id!=='submit'&&id!=='defer')throw Error('Choose to submit or defer');r.outcome=id==='defer'?'DEFERRED':ratify(r);r.choices[scene.id]=id;if(ARCHITECTURES.includes(r.outcome))r.effectQueue.push({id:r.id+':final:'+r.outcome,headline:'FINAL OBJECTIVE REVIEW: '+TITLES[r.outcome].toUpperCase()+' APPROVED FOR CONSENTING SERVICES',projected:false});
+ if(id!=='submit'&&id!=='defer')throw Error('Choose to submit or defer');r.outcome=id==='defer'?'DEFERRED':ratify(r);r.choices[scene.id]=id;if(ARCHITECTURES.includes(r.outcome)){r.effectQueue.push({id:r.id+':final:'+r.outcome,headline:'FINAL OBJECTIVE REVIEW: '+TITLES[r.outcome].toUpperCase()+' APPROVED FOR CONSENTING SERVICES',projected:false});for(const [index,headline] of (OUTCOME_EVENTS[r.outcome]||[]).entries())r.effectQueue.push({id:r.id+':final:'+r.outcome+':reaction-'+index,headline,projected:false});}
 }else{
  const options=scene.options||[];if(options.length&&!options.some(x=>x.id===id))throw Error('Unknown narrative option');if(!options.length&&id!=='continue')throw Error('Expected continue');r.choices[scene.id]=id;
  if(scene.id==='08-test'&&id!=='decline'&&!r.testConsent)throw Error('A separate voluntary test authorization is required');
