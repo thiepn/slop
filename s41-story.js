@@ -16,7 +16,28 @@ function read(){let disk=null;try{disk=JSON.parse(localStorage.getItem('slopocal
 function world(){const state=window.Slop40.state;return {campaigns:state.campaigns,definitions:window.Slop40.campaigns};}
 function active(){return Rules.active(read());}
 function progressLabel(run){return 'EP '+String(run.episode).padStart(2,'0')+' / 09 · '+(run.completed?'FINISHED':'SCENE '+(run.step+1));}
-async function mutation(fn){if(working)return;working=true;try{const result=await X.exclusive(()=>{let ret,err=null;const ok=W.mutate(v=>{const s=Rules.normalize(v.phase41);try{ret=fn(s,{campaigns:v.phase40?.campaigns,definitions:window.Slop40.campaigns});}catch(e){err=e;throw e}v.phase41=s;});if(!ok)throw err||Error('Story progress could not be saved. Storage may be unavailable or full.');return ret;});notice='Progress saved locally.';render();return result;}catch(e){notice=String(e.message||e);render();}finally{working=false;}}
+async function mutation(fn){if(working)return;working=true;try{const result=await X.exclusive(()=>{let ret,err=null;const ok=W.mutate(v=>{const s=Rules.normalize(v.phase41);try{ret=fn(s,{campaigns:v.phase40?.campaigns,definitions:window.Slop40.campaigns});}catch(e){err=e;throw e}v.phase41=s;});if(!ok)throw err||Error('Story progress could not be saved. Storage may be unavailable or full.');return ret;});notice='Progress saved locally.';render();Promise.resolve().then(project);return result;}catch(e){notice=String(e.message||e);render();}finally{working=false;}}
+// New authored events use a bounded retryable outbox; no credits or market trades.
+let projecting=false;
+async function project(){if(projecting)return;projecting=true;try{await X.exclusive(async()=>{
+ const s=read();const pending=[];for(const r of s.runs)for(const e of r.effectQueue||[])if(!e.projected)pending.push({runId:r.id,event:e});
+ for(const {runId,event:e}of pending.slice(0,12)){
+  const S=window.SlopSociety;if(!S?.data||typeof S.save!=='function')break;
+  const disk=(()=>{try{return JSON.parse(localStorage.getItem('slopocalypse:internet-collapse:v3')||'null')}catch(_){return null}})();
+  if(disk?.version===3)window.dispatchEvent(new StorageEvent('storage',{key:'slopocalypse:internet-collapse:v3',newValue:JSON.stringify(disk)}));
+  const a=S.data,pre={news:a.news.slice(),posts:a.posts.slice(),history:a.history.slice()};
+  const base='story41:'+e.id,newsId=base+':news',socialId=base+':social';
+  if(!a.news.some(x=>x.id===newsId))a.news.unshift({id:newsId,title:e.headline,body:'A completely fictional authored SLOPOCALYPSE story event.',source:'SLOPOCALYPSE Story',reads:0,confidence:0,created:'FICTIONAL',fake:true});
+  if(!a.posts.some(x=>x.id===socialId))a.posts.unshift({id:socialId,agent:'Intern #NULL',text:e.headline+' — fictional story update',likes:0,replies:0,sponsored:false});
+  if(!a.history.some(x=>x.id===base))a.history.unshift({id:base,time:'FICTIONAL',type:'STORY',text:e.headline});
+  if(!S.save()){Object.assign(a,pre);break;}
+  // Mail and outbox acknowledgement share one v2 mutation under the v32 lock.
+  if(!W.mutate(v=>{const st=Rules.normalize(v.phase41),r=st.runs.find(x=>x.id===runId),item=r?.effectQueue?.find(x=>x.id===e.id);if(!item)return;
+    const mailId=base+':mail';if(!v.mails.some(m=>m.id===mailId))v.mails.unshift({id:mailId,from:'SLOPOCALYPSE Story',subject:e.headline,body:'Fictional narrative event. No external service was contacted.',time:'STORY',unread:true});v.mails=v.mails.slice(0,30);item.projected=true;v.phase41=st;
+  }))break;
+ }
+ });}catch(err){console.warn('Story reactions queued for safe retry:',err.message);}finally{projecting=false;}}
+
 function button(label,action,id,cls){return '<button type="button" class="s41-button '+(cls||'')+'" data-action="'+escape(action)+'" data-id="'+escape(id||'')+'">'+escape(label)+'</button>';}
 function inertOther(on){if(on){for(const e of document.body.children){if(e===root)continue;if(!priorInert.has(e))priorInert.set(e,e.inert);e.inert=true;}}else{for(const [e,prior]of priorInert){e.inert=prior;}priorInert.clear();}}
 function open(){if(opened)return;window.Slop40?.close?.();focus=document.activeElement;opened=true;root.querySelector('#s41-backdrop').hidden=false;root.querySelector('#s41-dialog').hidden=false;inertOther(true);render();root.querySelector('#s41-close').focus();}
@@ -56,6 +77,6 @@ else if(action==='new-run')await mutation(s=>Rules.newRun(s));
 else if(action==='select-run')await mutation(s=>Rules.selectRun(s,id));}
 function onKey(e){if(!opened)return;if(e.key==='Escape'){e.preventDefault();close();return;}if(e.key==='Tab'){const els=[...root.querySelector('#s41-dialog').querySelectorAll('button:not([disabled]),a[href]')].filter(x=>x.offsetParent!==null);if(!els.length)return;const first=els[0],last=els[els.length-1];if(e.shiftKey&&document.activeElement===first){last.focus();e.preventDefault();}else if(!e.shiftKey&&document.activeElement===last){first.focus();e.preventDefault();}}}
 function mount(){document.body.append(root);root.querySelector('#s41-launch').addEventListener('click',open);root.querySelector('#s41-close').addEventListener('click',close);root.querySelector('#s41-backdrop').addEventListener('click',close);document.addEventListener('keydown',onKey);root.addEventListener('click',e=>{const tab=e.target.closest('[data-view]');if(tab){view=tab.dataset.view;render();return;}const b=e.target.closest('[data-action]');if(b)act(b.dataset.action,b.dataset.id||'');});window.addEventListener('slop:world',()=>{if(opened)render()});window.addEventListener('storage',e=>{if(e.key==='slopocalypse:fictional-internet:v2'&&opened)render()});}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{mount();project();},{once:true});else{mount();project();}
 window.Slop41={open,close,get state(){return read()},get active(){return active()},get chapter(){return Data[active().episode-1]?.title},get content(){return Data}};
 })();
