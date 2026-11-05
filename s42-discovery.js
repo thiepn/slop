@@ -6,7 +6,7 @@ const W=window.SlopWorld,X=window.SlopWorld32;
 if(!W||!X||window.Slop42Discovery)return;
 const e=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PAGE=(location.pathname.split('/').pop()||'index.html').toLowerCase();
-const CARD='.slop-card,.s2-card,.s2-result,.s3-item,.s3-stat,.s3-result,.sx-feature,.sx-certificate,.slop-artifact,.s41-artifact';
+const CARD='.slop-card,.s2-card,.s2-result,.s3-item,.s3-stat,.s3-result,.sx-feature,.sx-certificate,.slop-artifact,.s41-artifact,.artifact,.slop-tile,.feature,.agent,.bench-card,.mini-card,.stat';
 const INTERACTIVE='a,button,input,select,textarea,summary,label,[contenteditable], [role="button"], [role="link"]';
 const SKIP='#s40-shell,#s41-root,#s31-panel,#s42-discovery,[role="dialog"],.slop-nav,.slop-footer';
 const TRAILS=[
