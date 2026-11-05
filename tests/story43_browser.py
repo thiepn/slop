@@ -71,10 +71,42 @@ def run(browser_name):
     page.locator('[data-s43-command=policy]').click()
     page.get_by_role('button',name='Shared evidence standard').click()
     page.wait_for_function('Slop43.state.policy === "Shared evidence standard"')
+    # Cross-platform comparisons force two source cases to be completed first.
+    # The choice affects an independently reported, replay-invalidated finding.
+    page.locator('[data-s43-command=tab][data-id=cross]').click()
+    cross=page.evaluate('Slop43Cases.cross')
+    assert len(cross)==8
+    for idx,x in enumerate(cross):
+     page.locator(f'[data-s43-command=cross-open][data-id="{x["id"]}"]').click()
+     assert page.get_by_text(x['issue']).is_visible()
+     assert page.locator('[data-s43-command=cross-choice]').count()==3
+     if idx==0:
+      wrong=(x['correct']+1)%3
+      page.locator(f'[data-s43-command=cross-choice][data-id="{wrong}"]').click()
+      page.wait_for_function("(id)=>Slop43.state.cross[id]?.stage===1",arg=x['id'])
+      page.locator('[data-s43-command=cross-retry]').click()
+      page.wait_for_function("(id)=>Slop43.state.cross[id]?.stage===0",arg=x['id'])
+     page.locator(f'[data-s43-command=cross-choice][data-id="{x["correct"]}"]').click()
+     page.wait_for_function("(id)=>Slop43.state.cross[id]?.stage===1",arg=x['id'])
+     page.locator('[data-s43-command=cross-file][data-id=mediate]').click()
+     page.wait_for_function("(id)=>Slop43.state.cross[id]?.stage===2",arg=x['id'])
+     assert page.get_by_text('Request coordinated correction').count()==0  # Actual outcome text, not a dead button
+     page.locator('[data-s43-command=tab][data-id=cross]').click()
+    assert page.evaluate('Slop43.progress.cross')==8
+    page.reload();page.wait_for_function('Boolean(window.Slop43)')
+    assert page.evaluate('Slop43.progress.cross')==8,'Cross-case findings were lost on reload'
+    page.goto(url+'slopnews.html');page.wait_for_function('Boolean(window.Slop43)')
+    page.locator('#s43-launch').click()
+    page.locator('[data-s43-command=replay]').click()
+    page.wait_for_function("() => !Slop43.state.cross['forecast-ad']")
+    assert page.evaluate('Slop43.progress.cross')==7,'Unrelated cross-service findings must survive source replay'
+    assert page.evaluate("Slop43.state.history.some(e=>e.kind==='Comparison invalidated')")
+    page.locator('[data-s43-command=tab][data-id=cross]').click()
+    assert page.locator('[data-s43-command=cross-open]').count()==8
     assert not errors,errors[:5]
     assert page.evaluate('document.documentElement.scrollWidth-document.documentElement.clientWidth')<=4
     browser.close()
-    print(f'{browser_name}: 44 missions, 11 department dossiers, card interaction, annotations, offline saves, final advisory PASS')
+    print(f'{browser_name}: 44 missions, 11 department dossiers, card interaction, annotations, offline saves, final advisory, eight cross-examinations, reload persistence and replay invalidation PASS')
   finally:server.shutdown();server.server_close()
  finally:
   for p in PAGES:(folder/p).unlink(missing_ok=True)
