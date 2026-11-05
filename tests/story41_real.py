@@ -41,6 +41,11 @@ def run(browser_name):
             credits=page.evaluate('SlopWorld.state.credits')
             page.locator('#s41-launch').click()
             assert page.locator('#s41-dialog').is_visible(), 'Story modal failed to open'
+            stale=context.new_page()
+            stale.goto(url,wait_until='load')
+            stale.wait_for_function('!!window.Slop41')
+            stale.locator('#s41-launch').click()
+            assert 'EP 01' in stale.locator('.s41-progress').inner_text()
             count=0
             while count<95:
                 count+=1
@@ -59,6 +64,11 @@ def run(browser_name):
                     buttons=page.locator('#s41-body button[data-action="commit"]')
                     assert buttons.count(), f'No story choice at {id}'
                     buttons.first.click()
+                if count==1:
+                    stale.locator('#s41-body button[data-action="commit"]').first.click()
+                    stale.locator('#s41-note').get_by_text('Story advanced elsewhere',exact=False).wait_for(timeout=7000)
+                    assert page.evaluate('Slop41.active.step')==1,'Stale other-tab click advanced story twice'
+                    stale.close()
                 if count in (9,31,47):
                     page.reload(wait_until='load')
                     page.wait_for_function('!!window.Slop41')
@@ -69,6 +79,8 @@ def run(browser_name):
             assert page.evaluate('Object.keys(Slop41.active.bindings).length')==3
             assert page.evaluate('SlopWorld.state.credits')==credits,'Authored story must not mint or spend credits'
             assert page.evaluate('document.documentElement.scrollWidth-document.documentElement.clientWidth')<=1,'390px overflow'
+            page.set_viewport_size({'width':320,'height':720})
+            assert page.evaluate('document.documentElement.scrollWidth-document.documentElement.clientWidth')<=1,'320px overflow'
             page.get_by_role('tab',name='Evidence journal').click()
             assert page.get_by_text('Bound campaign history').is_visible()
             page.get_by_role('button',name='Close story').click()
