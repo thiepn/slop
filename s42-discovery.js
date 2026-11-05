@@ -22,7 +22,7 @@ const categories={evidence:['lab.html','slopnews.html','slopwiki.html','trust.ht
 const category=page=>Object.entries(categories).find(([,pages])=>pages.includes(page))?.[0]||'exploration';
 const safePage=s=>/^[a-z0-9-]+\.html(?:\?[^#]*)?(?:#[\w-]*)?$/i.test(s||'')?s:null;
 function fresh(){return {version:1,saved:{},compare:[],questions:{},reports:{},history:[]};}
-function state(){let q=W.state?.phase6?.s42Discovery;return q?.version===1&&q.saved&&typeof q.saved==='object'?q:fresh();}
+function state(){let q=null;try{q=JSON.parse(localStorage.getItem('slopocalypse:fictional-internet:v2')||'null')?.phase6?.s42Discovery;}catch(_){}if(!q)q=W.state?.phase6?.s42Discovery;return q?.version===1&&q.saved&&typeof q.saved==='object'?q:fresh();}
 const cards=new Map();let count=0,modal=null,tab='page',selected=null,priorFocus=null,working=false,toastTimer=null;
 const pageLabel=p=>{const apps=window.SlopInteraction?.apps||APP_FALLBACK;const match=apps.find(x=>x[0]===p);return match?.[1]||p.replace(/\.html$/,'').replace(/-/g,' ');};
 const sameSiteLinks=node=>[...node.querySelectorAll('a[href]')].map(a=>({href:safePage(a.getAttribute('href')||''),title:(a.textContent||'Visit destination').trim().slice(0,72)})).filter(x=>x.href).slice(0,8);
