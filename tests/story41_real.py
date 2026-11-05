@@ -88,6 +88,10 @@ def run(browser_name):
                     if(r.completed)return true;
                     const scene=Slop41.content[r.episode-1]?.scenes[r.step];
                     const header=document.querySelector('#s41-body .s41-scene h3');
+                    if(scene?.id==='09-ending' && r.outcome){
+                        const notice=document.querySelector('#s41-body .s41-progress');
+                        return Boolean(header && notice?.textContent.startsWith('FINAL RESULT:'));
+                    }
                     return Boolean(scene && header && header.textContent.trim()===scene.title);
                 }""",timeout=10000)
                 if count in (9,31,47):
