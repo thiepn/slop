@@ -220,3 +220,18 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready,{once:true});else ready();
 })();
+
+
+/* Phase 4.2 — optional cross-app inspections and fictional artifact shelf.
+   Existing native buttons, original campaign state and saved rewards are preserved. */
+;(()=>{
+  if(window.__SLOP42_INLINE||document.querySelector('script[data-s42-loader]'))return;
+  function boot(){
+    if(!window.SlopWorld||!window.SlopWorld32||document.querySelector('script[data-s42-loader]'))return;
+    const style=document.createElement('link');style.rel='stylesheet';style.href='s42.css';document.head.appendChild(style);
+    const script=document.createElement('script');script.src='s42-discovery.js';script.dataset.s42Loader='true';
+    script.onerror=()=>console.warn('Optional cross-app discovery unavailable; original site actions still work.');
+    document.body.appendChild(script);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
