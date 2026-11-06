@@ -11,3 +11,9 @@
    Stop only the motion around enhanced interactive cards; keep all other
    SLOPOCALYPSE animations and original controls intact. */
 .dashboard:has(.s42-inspectable),body.slop-overdrive .artifact.s42-inspectable{animation:none!important}
+
+/* Homepage originally applies smooth document scrolling, which can leave
+   WebKit's automated and real pointer target moving while it scrolls an
+   enhanced dashboard control into view. Keep other destinations and
+   unenhanced pages' scroll behavior unchanged. */
+html:has(.dashboard .s42-inspectable){scroll-behavior:auto}
