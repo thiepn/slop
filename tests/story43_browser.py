@@ -55,13 +55,27 @@ def run(browser_name):
      page.wait_for_function("Slop43.state.cases[location.pathname.split('/').pop()]?.stage === 2")
      page.locator('#s43-body [data-s43-command=publish]').click()
      page.wait_for_function("Slop43.state.cases[location.pathname.split('/').pop()]?.stage === 3")
-     if p=='slopnews.html':
-      # The first source offers a contextual preview but cannot fabricate the
-      # not-yet-completed advertising report.
+     if p=='slopads.html':
+      # Advertising is authored earlier in the 44-case route than slopnews.
+      # One completed source may preview the pairing but cannot fabricate
+      # the news report or start a cross-examination.
       assert page.get_by_role('heading',name='Connect this finding to another service').is_visible()
+      assert page.evaluate("Slop43.state.cases['slopnews.html']?.stage !== 3")
       page.get_by_role('button',name='Preview the paired investigation').click()
       assert page.get_by_role('heading',name='The Forecast That Bought Itself').is_visible()
       assert page.get_by_text('File both local cases before submitting a comparison.').is_visible()
+      assert page.locator('[data-s43-command=cross-choice]').count()==0
+      assert page.evaluate("!Slop43.state.cross?.['forecast-ad']")
+      page.locator('#s43-menu [data-s43-command=tab][data-id=mission]').click()
+     if p=='slopnews.html':
+      # Filing the later news source makes the exact same pairing actionable
+      # without silently filing a joint conclusion.
+      assert page.get_by_role('heading',name='Connect this finding to another service').is_visible()
+      assert page.evaluate("Slop43.state.cases['slopads.html']?.stage === 3")
+      page.get_by_role('button',name='Compare both reports').click()
+      assert page.get_by_role('heading',name='The Forecast That Bought Itself').is_visible()
+      assert page.locator('[data-s43-command=cross-choice]').count()==3
+      assert page.evaluate("!Slop43.state.cross?.['forecast-ad']")
       page.locator('#s43-menu [data-s43-command=tab][data-id=mission]').click()
      page.locator('#s43-close').click()
     # After the second source is filed the same case directly unlocks the
