@@ -31,7 +31,7 @@ async function commit(fn){for(let n=0;n<25&&busy;n++)await new Promise(resolve=>
   let thrown=null;const ok=W.mutate(world=>{
    const area=world.phase6||(world.phase6={});const s=structuredClone(area.s43?.version===1?area.s43:fresh());
    try{fn(s)}catch(err){thrown=err;throw err;}
-   s.version=1;s.cross=s.cross||{};s.history=(s.history||[]).slice(-180);
+   s.version=1;s.cross=s.cross||{};s.history=(s.history||[]).slice(0,180);
    s.items=Object.fromEntries(Object.entries(s.items||{}).slice(-200));area.s43=s;
   });if(!ok)throw thrown||Error('The local story record could not be saved.');
  });message='Recorded in this browser. No campaign credits were changed.';busy=false;render();return true;
