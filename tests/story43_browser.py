@@ -55,7 +55,23 @@ def run(browser_name):
      page.wait_for_function("Slop43.state.cases[location.pathname.split('/').pop()]?.stage === 2")
      page.locator('#s43-body [data-s43-command=publish]').click()
      page.wait_for_function("Slop43.state.cases[location.pathname.split('/').pop()]?.stage === 3")
+     if p=='slopnews.html':
+      # The first source offers a contextual preview but cannot fabricate the
+      # not-yet-completed advertising report.
+      assert page.get_by_role('heading',name='Connect this finding to another service').is_visible()
+      page.get_by_role('button',name='Preview the paired investigation').click()
+      assert page.get_by_role('heading',name='The Forecast That Bought Itself').is_visible()
+      assert page.get_by_text('File both local cases before submitting a comparison.').is_visible()
+      page.locator('#s43-menu [data-s43-command=tab][data-id=mission]').click()
      page.locator('#s43-close').click()
+    # After the second source is filed the same case directly unlocks the
+    # actual cross-service reasoning, without creating any additional save.
+    page.goto(url+'slopnews.html');page.wait_for_function('Boolean(window.Slop43)')
+    page.locator('#s43-launch').click()
+    page.get_by_role('button',name='Compare both reports').click()
+    assert page.get_by_role('heading',name='The Forecast That Bought Itself').is_visible()
+    assert page.locator('[data-s43-command=cross-choice]').count()==3
+    page.locator('#s43-close').click()
     page.goto(url+'index.html');page.wait_for_function('Boolean(window.Slop43)')
     assert page.evaluate('Slop43.progress.done')==44
     page.locator('#s43-launch').click();page.locator('[data-s43-command=tab][data-id=board]').click()
