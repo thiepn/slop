@@ -44,6 +44,34 @@ def run(name):
     page.wait_for_function("""() => [...document.querySelectorAll('.s42-inspectable')]
       .every(c => c.querySelector(':scope > .s42-inspect-action') &&
        c.querySelector(':scope > .s43-card-play'))""",timeout=12000)
+    # Every original route must retain the homepage's base palette, even
+    # where a later interactive module introduces a scoped surface.
+    page.wait_for_function("""() => {
+      const desk=document.querySelector('#s43-dialog');
+      return Boolean(desk && getComputedStyle(desk).backgroundColor === 'rgb(27, 16, 56)');
+    }""",timeout=12000)
+    theme=page.evaluate("""() => {
+      const $=selector=>document.querySelector(selector);
+      const style=node=>getComputedStyle(node);
+      const module=$('.s36-hero,.s35-intro');
+      return {
+        body:style(document.body).backgroundColor,
+        ink:style(document.body).color,
+        desk:style($('#s43-dialog')).backgroundColor,
+        deskInk:style($('#s43-dialog')).color,
+        caseLauncher:style($('#s43-launch')).backgroundImage,
+        moduleClass:module?.className || '',
+        moduleGradient:module?style(module).backgroundImage:''
+      };
+    }""")
+    assert theme['body']=='rgb(16, 8, 41)',(route,'Background drift',theme)
+    assert theme['ink']=='rgb(248, 245, 255)',(route,'Text palette drift',theme)
+    assert theme['desk']=='rgb(27, 16, 56)' and theme['deskInk']=='rgb(248, 245, 255)',(route,'Case Desk theme drift',theme)
+    assert 'rgb(94, 51, 214)' in theme['caseLauncher'],(route,'Case launcher is not violet/pink',theme)
+    if theme['moduleClass']=='s36-hero':
+     assert 'rgb(94, 51, 214)' in theme['moduleGradient'],(route,'Legacy panel theme drift',theme)
+    elif theme['moduleClass']=='s35-intro':
+     assert 'rgb(87, 38, 144)' in theme['moduleGradient'],(route,'Game panel theme drift',theme)
     counts=page.evaluate("""() => {
       const cards=[...document.querySelectorAll('.s42-inspectable')];
       return {cards:cards.length,
