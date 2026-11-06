@@ -83,6 +83,19 @@ def run(browser_name=None):
                 assert section.get_by_role('button',name='File documented finding').count()==1
                 section.get_by_role('button',name='File documented finding').click()
                 assert page.evaluate('Boolean(Slop42Discovery.state.reports.evidence)')
+                # Once the local action journal reaches 60 entries, a subsequent
+                # saved artifact must remain visible in Recent actions.
+                page.evaluate("""() => SlopWorld.mutate(w => {
+                    w.phase6.s42Discovery.history=Array.from({length:60},(_,i)=>({
+                        verb:'Old fixture',id:'old-'+i+':artifact',at:'2026-01-01T00:00:00Z'
+                    }));
+                })""")
+                page.locator('#s42-close').click()
+                page.locator('#second .s42-inspect-action').click()
+                page.get_by_role('button',name='Save artifact').click()
+                assert page.evaluate("Slop42Discovery.state.history.length===60")
+                assert page.evaluate("Slop42Discovery.state.history[0].verb==='Saved'")
+                assert page.evaluate("!Slop42Discovery.state.history.some(x=>x.id==='old-59:artifact')"), 'History incorrectly kept oldest actions'
                 assert not exceptions,exceptions
                 print(f'{kind}: all card, native-action, shelf, comparison, cross-app and report checks PASS')
                 browser.close()
