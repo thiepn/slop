@@ -50,6 +50,21 @@ if(r.stage===0){html+='<h4>1. Choose how to respond</h4><p>All approaches have a
 if(r.stage===1){html+=`<p class="s43-outcome"><strong>Your action:</strong> ${escape(c.choices[r.choice])}</p><p>${escape(feedback[['verify','amplify','protect'][r.choice]])}</p><h4>2. Evidence check</h4><p>${escape(c.question)}</p>${quizFor(c)}<p class="s43-muted">One answer matches the limited claim the record can support. A wrong answer will remain part of your case history until corrected.</p>`;}
 if(r.stage===2){html+=`<p class="s43-outcome">Evidence assessment: <strong>${r.auditCorrect?'Correctly scoped':'Unsupported inference'}</strong></p><p>${escape(c.insight)}</p>${!r.auditCorrect?'<p>Your chosen interpretation does not follow from the evidence. You may correct it before releasing the report.</p>'+btn('Recheck the evidence','retry','','s43-primary'):''}<h4>3. What should happen to the findings?</h4><div class="s43-actions">${btn('Publish with explicit limitations','publish','','s43-option')}${btn('Keep a private case file','private','','s43-option')}${btn('Request institutional review','review','','s43-option')}</div>`;}
 if(r.stage===3){html+=`<p class="s43-outcome"><strong>Case filed:</strong> ${escape(resultLabel(r))} · ${escape(r.disposition)}</p><p>${escape(c.insight)}</p><blockquote>${escape(c.clue)}</blockquote><h4>Consequences</h4><p>${r.approach==='amplify'?'An attention-heavy release must disclose its limits before a later institution can rely on it.':r.approach==='protect'?'The source remains protected. A later public finding needs permission or independent corroboration.':'The original claim has a documented source scope.'}</p><p>${r.auditCorrect?'The evidence check identified the defensible conclusion.':'The audit record preserves the unsupported inference; the finding cannot be represented as qualified.'}</p><div class="s43-actions">${btn('Replay this case without duplicate credits','replay','','s43-primary')}${btn('Open case notebook','tab','notebook')}${nav('Return to this destination',current)}</div>`;}
+// Surface the paired-source pay-off where the player completes a relevant
+// investigation. These links only navigate existing cross-exam scenes; they
+// never fabricate an unfiled source or change a saved answer/reward.
+if(r.stage===3){
+ const related=CROSS.filter(x=>x.pages.includes(current));
+ if(related.length){
+  html+='<section class="s43-linked"><h4>Connect this finding to another service</h4><p>Some investigations become more useful when two independent source files are considered together.</p>';
+  for(const x of related){
+   const peer=x.pages.find(page=>page!==current),ready=complete(s.cases[peer]||{});
+   const record=s.cross?.[x.id],filed=record?.stage===2&&crossCurrent(x,s,record);
+   html+=`<div class="s43-record"><strong>${escape(x.title)}</strong><p>${ready?(filed?'Both source reports and their comparison are filed.':'Both source reports are filed. The combined claim can now be examined.'):'The companion report is not filed yet. Examine that source before drawing a joint conclusion.'}</p><div class="s43-actions">${btn(filed?'Review combined finding':ready?'Compare both reports':'Preview the paired investigation','cross-open',x.id,'s43-primary')}${nav('Visit '+peer,peer)}</div></div>`;
+  }
+  html+='</section>';
+ }
+}
 const following=Data.cases[(c.index+1)%Data.cases.length];html+=`<hr/><div class="s43-next"><strong>Next suggested location:</strong> ${escape(following.title)} ${nav('Investigate '+following.page,following.page)}</div>`;
 return html;
 }
