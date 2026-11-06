@@ -94,6 +94,18 @@ def run(name):
   page.locator('#s43-board-search').fill('index.html')
   assert page.locator('[data-s43-entry]:not([hidden])').count()>=1
   assert page.locator('[data-s43-entry][hidden]').count()>=1
+  # History is prepended newest-first. A capped 180-event journal must keep
+  # the newly filed replay event, not silently preserve only its oldest entries.
+  page.evaluate("""() => SlopWorld.mutate(w => {
+   w.phase6.s43.history=Array.from({length:180},(_,i)=>({
+    kind:'Old fixture',title:'old-'+i,detail:'fixture',at:'2026-01-01T00:00:00Z'
+   }));
+  })""")
+  page.locator('#s43-menu [data-s43-command=tab][data-id=mission]').click()
+  page.locator('#s43-body [data-s43-command=replay]').click()
+  page.wait_for_function("Slop43.state.history[0]?.kind==='Replay'")
+  assert page.evaluate("Slop43.state.history.length===180"), 'History cap changed'
+  assert page.evaluate("!Slop43.state.history.some(e=>e.title==='old-179')"), 'Newest entry replaced by oldest instead of trimming tail'
   assert page.evaluate('document.documentElement.scrollWidth-document.documentElement.clientWidth')<=4
   assert not errors,errors
   browser.close()
