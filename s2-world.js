@@ -26,7 +26,10 @@
  window.dispatchEvent(new CustomEvent('slop:world',{detail:{state:clone(state),saved:true}}));return true;}
  function rebase(){try{const current=JSON.parse(localStorage.getItem(KEY)||'null');
    if(current?.version===2&&Array.isArray(current.events)&&Number.isFinite(Number(current.credits))){
-    if((Number(current.revision)||0)>=(Number(state.revision)||0))state={...state,...current,
+    // localStorage is the authoritative committed snapshot, even if this tab's
+    // cached revision is greater. Cross-tab writes can replace a higher local
+    // revision with a lower one; retaining the stale cache loses real credits.
+    state={...state,...current,
       rewardBudget:current.rewardBudget&&typeof current.rewardBudget==='object'?current.rewardBudget:{}};
    }
   }catch(_){} }
@@ -44,21 +47,34 @@
  // Bounded lifetime awards prevent click-spamming from minting infinite funds.
  // Existing saved balances are never adjusted, and controls still work after
  // their fictional promotional rewards have been exhausted.
+ // Earnings now use the same native Web Lock as v32 missions and newer apps.
+ // Legacy callers that ignore the return value continue to work. On modern
+ // browsers the return value is a Promise<boolean>; await it for confirmation.
+ // Without Web Locks the old synchronous best-effort path remains available.
  function earn(amount,reason){
   const n=Number(amount),key=String(reason||'unspecified').slice(0,90);
   if(!Number.isSafeInteger(n)||n<=0||n>1000)return false;
-  const limit=key==='singularity completion'?1:3;let exhausted=false;
-  const ok=mutate(s=>{s.rewardBudget=s.rewardBudget&&typeof s.rewardBudget==='object'?s.rewardBudget:{};
-   const used=Math.max(0,Number(s.rewardBudget[key])||0);
-   if(used>=limit){exhausted=true;return false;}
-   s.rewardBudget[key]=used+1;s.credits+=n;s.reputation+=1;
-  });
-  if(!ok){if(exhausted)toast('REWARD CAP REACHED · '+key.toUpperCase()+' · ACTION STILL WORKS');return false;}
-  if(reason)toast('+'+n+' SYNERGY CREDITS · '+reason);
-  achievement('FIRST CLICK ECONOMY',state.reputation>=2);
-  achievement('SYNERGY MILLIONAIRE (FIGURATIVELY)',state.credits>=2500);
-  return true;
+  const run=()=>{
+   const limit=key==='singularity completion'?1:3;let exhausted=false;
+   const ok=mutate(s=>{s.rewardBudget=s.rewardBudget&&typeof s.rewardBudget==='object'?s.rewardBudget:{};
+    const used=Math.max(0,Number(s.rewardBudget[key])||0);
+    if(used>=limit){exhausted=true;return false;}
+    s.rewardBudget[key]=used+1;s.credits+=n;s.reputation+=1;
+   });
+   if(!ok){if(exhausted)toast('REWARD CAP REACHED · '+key.toUpperCase()+' · ACTION STILL WORKS');return false;}
+   if(reason)toast('+'+n+' SYNERGY CREDITS · '+reason);
+   achievement('FIRST CLICK ECONOMY',state.reputation>=2);
+   achievement('SYNERGY MILLIONAIRE (FIGURATIVELY)',state.credits>=2500);
+   return true;
+  };
+  if(navigator.locks?.request){
+   return navigator.locks.request('slopocalypse-v32-write',{mode:'exclusive'},run).catch(e=>{
+    toast('REWARD SAVE FAILED: '+String(e.message||e).slice(0,100));return false;
+   });
+  }
+  return run();
  }
+
  function spend(amount,reason){
   const n=Number(amount);if(!Number.isSafeInteger(n)||n<0)return false;
   if(n===0)return true;

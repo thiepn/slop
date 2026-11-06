@@ -227,13 +227,23 @@
    }
    if(data.rewards.claimed.includes(id))return {ok:false,reason:'Already claimed'};
    const v2=storageRead(S2);const ui=storageRead(S31);
+   // The credit addition and this optional marker are committed together in
+   // the v2 wallet. This independently rejects a stale claimant if the v32
+   // view was refreshed from an older local projection.
+   if(v2?.rewardClaimsV32?.[id] || ui?.claimed?.includes(id))return {ok:false,reason:'Already claimed'};
    if(!checkSource(S2,v2)||!checkSource(S31,ui))return {ok:false,reason:'Legacy state unavailable'};
    const before={v2:rawRead(S2),ui:rawRead(S31),v32:rawRead(KEY)};
    try{
     localStorage.setItem(CLAIM_JOURNAL,JSON.stringify({version:1,before:{[S2]:before.v2,[S3]:rawRead(S3),[S31]:before.ui,[KEY]:before.v32},created:now()}));
     // Keep the existing SlopWorld instance synchronized, rather than modifying
     // a detached copy of its wallet and risking the next legacy mutation.
-    if(!window.SlopWorld.mutate(s=>{s.credits=Math.max(int(v2.credits),int(s.credits))+award;s.reputation=(int(s.reputation)+1)}))throw Error('Legacy wallet write failed');
+    if(!window.SlopWorld.mutate(s=>{
+      s.rewardClaimsV32=obj(s.rewardClaimsV32)?s.rewardClaimsV32:{};
+      if(s.rewardClaimsV32[id])return false;
+      s.credits=Math.max(int(v2.credits),int(s.credits))+award;
+      s.reputation=int(s.reputation)+1;
+      s.rewardClaimsV32[id]=award;
+    }))throw Error('Legacy wallet write failed');
     data.rewards.claimed.push(id);
     const ui2=storageRead(S31);if(!ui2.claimed.includes(id))ui2.claimed.push(id);
     localStorage.setItem(S31,JSON.stringify(ui2));

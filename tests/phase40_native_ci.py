@@ -17,7 +17,7 @@ async def main():
  server=http.server.ThreadingHTTPServer(('127.0.0.1',0),Handler)
  threading.Thread(target=server.serve_forever,daemon=True).start()
  base=f'http://127.0.0.1:{server.server_address[1]}'
- results=[];errors=[]
+ results=[];errors=[];phase=['initialization']
  def record(name,ok,details=None,status=None):
   s=status or ('PASS' if ok else 'FAIL')
   results.append({'name':name,'status':s,'details':details})
@@ -36,8 +36,8 @@ async def main():
    if browser:
     context=await browser.new_context(viewport={'width':1280,'height':840},reduced_motion='reduce')
     one=await context.new_page();two=await context.new_page()
-    one.on('pageerror',lambda e:errors.append(str(e)))
-    two.on('pageerror',lambda e:errors.append(str(e)))
+    one.on('pageerror',lambda e:errors.append({'phase':phase[0],'message':str(e),'stack':str(getattr(e,'stack',''))[:650]}))
+    two.on('pageerror',lambda e:errors.append({'phase':phase[0],'message':str(e),'stack':str(getattr(e,'stack',''))[:650]}))
     try:
      response=await one.goto(base+'/singularity.html',wait_until='domcontentloaded',timeout=25000)
      await one.wait_for_function('!!window.Slop40 && !!window.SlopWorld32',timeout=15000)
@@ -105,7 +105,9 @@ async def main():
       denied=await one.evaluate("""async()=>{const old=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k==='slopocalypse:fictional-internet:v2')throw new DOMException('full','QuotaExceededError');return old.call(this,k,v)};try{await Slop40.advance(1);return false}catch(e){return true}finally{Storage.prototype.setItem=old}}""")
       after=await one.evaluate('Slop40.state.tick')
       return denied and before==after,{'rejected':denied,'before':before,'after':after}
+     phase[0]='quota injection'
      await check('quota-failure atomic rollback',quota)
+     phase[0]='post-quota'
      async def keyboard():
       await one.locator('#s40-open').focus()
       await one.keyboard.press('Enter')

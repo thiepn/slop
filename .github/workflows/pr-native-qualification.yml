@@ -36,7 +36,7 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p qa_evidence
-          for script in phase40_qualification phase40_hardening phase40_factions phase40_characters phase40_balance phase40_usability; do
+          for script in phase40_qualification phase40_hardening phase40_factions phase40_characters phase40_balance phase40_usability hotfix_regression; do
             python tests/${script}.py 2>&1 | tee qa_evidence/${script}_ci.log
           done
       - name: 44 original pages at 320, 390, 768, 1440px

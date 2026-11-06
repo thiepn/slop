@@ -35,3 +35,6 @@
 html.s31-reduced #s37-modal *,html.s31-reduced #s37-open{transition:none!important;animation:none!important}
 /* On narrow phones Activity remains available through the app launcher tabs. */
 @media(max-width:375px){#s31-bar [data-s31-open="activity"]{display:none!important}}
+
+/* Awards 320px: permit the unbroken congratulations heading to wrap instead of painting beyond its box. */
+@media(max-width:359px){body[data-page="awards.html"] .slop-heading h2{overflow-wrap:anywhere;}}
