@@ -42,7 +42,7 @@ function attach(){for(const [id,entry] of cards)if(!entry.node.isConnected)cards
 
  });updateButton();}
 async function save(fn){if(working)return;working=true;try{await X.exclusive(()=>{
- let error=null;const ok=W.mutate(d=>{const p=d.phase6||(d.phase6={});const next=JSON.parse(JSON.stringify(p.s42Discovery?.version===1?p.s42Discovery:fresh()));try{fn(next);}catch(err){error=err;throw err;}next.version=1;next.compare=[...new Set(next.compare)].filter(k=>next.saved[k]).slice(-3);next.history=next.history.slice(-60);p.s42Discovery=next;});if(!ok)throw error||Error('Browser storage could not save the artifact.');
+ let error=null;const ok=W.mutate(d=>{const p=d.phase6||(d.phase6={});const next=JSON.parse(JSON.stringify(p.s42Discovery?.version===1?p.s42Discovery:fresh()));try{fn(next);}catch(err){error=err;throw err;}next.version=1;next.compare=[...new Set(next.compare)].filter(k=>next.saved[k]).slice(-3);next.history=next.history.slice(0,60);p.s42Discovery=next;});if(!ok)throw error||Error('Browser storage could not save the artifact.');
  });updateButton();render();}catch(err){status(String(err.message||err));}finally{working=false;}}
 function addHistory(s,verb,id){s.history.unshift({verb,id,at:new Date().toISOString()});}
 function status(msg){if(!modal)return;const el=modal.querySelector('#s42-notice');if(el)el.textContent=msg;}
