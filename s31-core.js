@@ -186,3 +186,73 @@
   const css=document.createElement('link');css.rel='stylesheet';css.href='s40.css';document.head.appendChild(css);
   const script=document.createElement('script');script.src='s40-world.js';script.defer=true;script.dataset.s40Loader='true';document.body.appendChild(script);
 })();
+
+
+/* Phase 4.1 — authored story, additive to original 4.0 and v32 backups. */
+;(()=>{
+  if(window.__SLOP41_INLINE||document.querySelector('script[data-s41-story]'))return;
+  let started=false;
+  const load=(src)=>new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src=src;
+    script.dataset.s41Story='true';
+    script.onload=resolve;
+    script.onerror=()=>reject(new Error('Story script unavailable: '+src));
+    document.body.appendChild(script);
+  });
+  async function boot(){
+    if(started||!window.Slop40||!window.SlopWorld||!window.SlopWorld32)return;
+    started=true;
+    const style=document.createElement('link');
+    style.rel='stylesheet';
+    style.href='s41.css';
+    document.head.appendChild(style);
+    try{
+      await load('s41-rules.js');
+      await load('s41-content.js');
+      await load('s41-story.js');
+    }catch(err){console.warn('Optional authored story unavailable:',err.message);}
+  }
+  function ready(){
+    const s40=document.querySelector('script[data-s40-loader]');
+    if(window.Slop40)boot();
+    else if(s40)s40.addEventListener('load',boot,{once:true});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready,{once:true});else ready();
+})();
+
+
+/* Phase 4.2 — optional cross-app inspections and fictional artifact shelf.
+   Existing native buttons, original campaign state and saved rewards are preserved. */
+;(()=>{
+  if(window.__SLOP42_INLINE||document.querySelector('script[data-s42-loader]'))return;
+  function boot(){
+    if(!window.SlopWorld||!window.SlopWorld32||document.querySelector('script[data-s42-loader]'))return;
+    const style=document.createElement('link');style.rel='stylesheet';style.href='s42.css';document.head.appendChild(style);
+    const script=document.createElement('script');script.src='s42-discovery.js';script.dataset.s42Loader='true';
+    script.onerror=()=>console.warn('Optional cross-app discovery unavailable; original site actions still work.');
+    document.body.appendChild(script);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+
+
+/* Phase 4.3 — forty-four optional local micro-missions and department reviews.
+   The original 4.0 resolver and every native page control remain authoritative. */
+;(()=>{
+ if(window.__SLOP43_INLINE||document.querySelector('script[data-s43-loader]'))return;
+ let started=false;
+ const load=src=>new Promise((resolve,reject)=>{
+  const s=document.createElement('script');s.src=src;s.dataset.s43Loader='true';
+  s.onload=resolve;s.onerror=()=>reject(new Error('Micro-mission script unavailable: '+src));
+  document.body.appendChild(s);
+ });
+ async function boot(){
+  if(started||!window.SlopWorld||!window.SlopWorld32)return;
+  started=true;
+  const style=document.createElement('link');style.rel='stylesheet';style.href='s43.css';document.head.appendChild(style);
+  try{await load('s43-cases.js');await load('s43-play.js');}
+  catch(err){console.warn('Optional forty-four-page micro-missions unavailable:',err.message);}
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();

@@ -1,0 +1,187 @@
+/* SLOPOCALYPSE 4.3 — authored, local-only micro adventures across 44 existing pages.
+ * No real-world actions, simulated wealth, 4.0 campaign edits or background tracking. */
+(()=>{'use strict';
+const Data=window.Slop43Cases,W=window.SlopWorld,X=window.SlopWorld32;
+if(!Data||!W||!X||window.Slop43)return;
+const KEY='slopocalypse:fictional-internet:v2',PATH_PAGE=location.pathname.split('/').pop()||'index.html',PAGE=/\.html$/i.test(PATH_PAGE)?PATH_PAGE:'index.html';
+const escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fresh=()=>({version:1,cases:{},departments:{},cross:{},items:{},history:[],policy:null});
+const safePage=page=>Object.hasOwn(Data.index,page)?page:null;
+const trim=(s,n)=>String(s||'').trim().slice(0,n);
+function read(){let d;try{d=JSON.parse(localStorage.getItem(KEY)||'null')?.phase6?.s43;}catch(_){}if(!d)d=W.state?.phase6?.s43;return d&&d.version===1&&d.cases&&d.departments?d:fresh();}
+const groups=Data.groups,CROSS=Data.cross||[],caseFor=page=>Data.index[page]||null;
+const crossFor=id=>CROSS.find(x=>x.id===id)||null;
+const sourceStamp=r=>r?.stage===3?[r.filedAt,r.choice,r.audit,r.disposition,r.verified].join('|'):null;
+const crossReady=(x,s)=>x.pages.every(p=>sourceStamp(s.cases[p]));
+const crossSources=(x,s)=>Object.fromEntries(x.pages.map(p=>[p,sourceStamp(s.cases[p])]));
+const crossCurrent=(x,s,r)=>!!r&&r.stage>0&&crossReady(x,s)&&x.pages.every(p=>r.sources?.[p]===sourceStamp(s.cases[p]));
+const groupFor=page=>groups.find(g=>g.pages.includes(page))||null;
+const feedback={verify:'You tested what the claim actually establishes. The result may be smaller, but it is easier to defend.',amplify:'The publicity spreads quickly. An impressive reaction is now part of the problem you are investigating.',protect:'You protected affected participants. The public record is less complete until authorized evidence can be shared.'};
+let dialog=null,launcher=null,tab='mission',current=PAGE,exhibit=null,crossId=null,busy=false,lastFocus=null,message='',scheduled=false,boardFilter='';
+const titleFor=page=>Data.index[page]?.title||page;
+const entry=page=>read().cases[page]||{stage:0};
+const complete=r=>r.stage===3;
+const groupDone=g=>g.pages.filter(p=>complete(entry(p))).length;
+const resultLabel=r=>!complete(r)?'Unfinished':r.verified?'Qualified with limits':r.approach==='amplify'?'Disclosure needed':'Disputed / incomplete';
+const btn=(label,cmd,id='',cls='')=>`<button type="button" class="s43-btn ${cls}" data-s43-command="${escape(cmd)}" data-id="${escape(id)}">${escape(label)}</button>`;
+const nav=(title,page)=>`<a href="${escape(page)}" class="s43-link">${escape(title)}</a>`;
+const progress=()=>{const s=read(),done=Object.values(s.cases).filter(complete).length;return {done,departments:Object.keys(s.departments).length,cross:CROSS.filter(x=>s.cross?.[x.id]?.stage===2&&crossCurrent(x,s,s.cross[x.id])).length};};
+async function commit(fn){for(let n=0;n<25&&busy;n++)await new Promise(resolve=>setTimeout(resolve,15));if(busy){message='A previous decision is still saving. Reopen the case and try again.';return false;}busy=true;try{
+ await X.exclusive(()=>{
+  let thrown=null;const ok=W.mutate(world=>{
+   const area=world.phase6||(world.phase6={});const s=structuredClone(area.s43?.version===1?area.s43:fresh());
+   try{fn(s)}catch(err){thrown=err;throw err;}
+   s.version=1;s.cross=s.cross||{};s.history=(s.history||[]).slice(0,180);
+   s.items=Object.fromEntries(Object.entries(s.items||{}).slice(-200));area.s43=s;
+  });if(!ok)throw thrown||Error('The local story record could not be saved.');
+ });message='Recorded in this browser. No campaign credits were changed.';busy=false;render();return true;
+ }catch(err){message=String(err?.message||err);busy=false;render();return false;}}
+function record(s,kind,title,detail){s.history.unshift({kind,title,detail,at:new Date().toISOString()});}
+function go(t,page){tab=t;if(page)current=page;else if(t==='mission'&&!caseFor(current))current=PAGE;message='';render();}
+function open(t='mission',page=PAGE){if(!dialog)return;lastFocus=document.activeElement;tab=t;current=safePage(page)||PAGE;message='';if(!dialog.open)dialog.showModal();render();dialog.querySelector('#s43-close')?.focus();}
+function close(){if(dialog?.open)dialog.close();lastFocus?.focus?.({preventScroll:true});}
+function optionsFor(c){return c.choices.map((text,i)=>btn(text,'choose',String(i),'s43-option')).join('');}
+function quizFor(c){const shifted=(c.index%3),options=c.answers.map((v,i)=>({text:v,index:i}));const rotated=[...options.slice(shifted),...options.slice(0,shifted)];return rotated.map(v=>btn(v.text,'answer',String(v.index),'s43-option')).join('');}
+function renderMission(){const c=caseFor(current);if(!c)return '<p>Choose one of the 44 destinations.</p>';const r=entry(current),s=read();let html=`<header class="s43-case-head"><p class="s43-kicker">MICRO-MISSION ${String(c.index+1).padStart(2,'0')} / 44 · ${escape(c.group)}</p><h3>${escape(c.title)}</h3><p>${escape(c.issue)}</p></header>`;
+if(current!==PAGE)html+=`<p class="s43-info">This mission belongs to another page. Its briefing can be read here. <strong>Make the first decision on that destination</strong> to inspect the actual surroundings.</p>${nav('Visit '+current,current)}`;
+else html+=`<p class="s43-info">Location verified: ${escape(PAGE)}. These decisions affect only the fictional investigation record, not your existing 4.0 campaigns.</p>`;
+if(exhibit?.page===current)html+=`<section class="s43-exhibit"><h4>Selected exhibit: ${escape(exhibit.title)}</h4><p>${escape(trim(exhibit.text,420))}</p>${btn('Evaluate this exhibit','exhibit','','s43-primary')}</section>`;
+if(r.stage===0){html+='<h4>1. Choose how to respond</h4><p>All approaches have a cost. Select the one whose trade-off you are prepared to defend.</p>'+optionsFor(c);}
+if(r.stage===1){html+=`<p class="s43-outcome"><strong>Your action:</strong> ${escape(c.choices[r.choice])}</p><p>${escape(feedback[['verify','amplify','protect'][r.choice]])}</p><h4>2. Evidence check</h4><p>${escape(c.question)}</p>${quizFor(c)}<p class="s43-muted">One answer matches the limited claim the record can support. A wrong answer will remain part of your case history until corrected.</p>`;}
+if(r.stage===2){html+=`<p class="s43-outcome">Evidence assessment: <strong>${r.auditCorrect?'Correctly scoped':'Unsupported inference'}</strong></p><p>${escape(c.insight)}</p>${!r.auditCorrect?'<p>Your chosen interpretation does not follow from the evidence. You may correct it before releasing the report.</p>'+btn('Recheck the evidence','retry','','s43-primary'):''}<h4>3. What should happen to the findings?</h4><div class="s43-actions">${btn('Publish with explicit limitations','publish','','s43-option')}${btn('Keep a private case file','private','','s43-option')}${btn('Request institutional review','review','','s43-option')}</div>`;}
+if(r.stage===3){html+=`<p class="s43-outcome"><strong>Case filed:</strong> ${escape(resultLabel(r))} · ${escape(r.disposition)}</p><p>${escape(c.insight)}</p><blockquote>${escape(c.clue)}</blockquote><h4>Consequences</h4><p>${r.approach==='amplify'?'An attention-heavy release must disclose its limits before a later institution can rely on it.':r.approach==='protect'?'The source remains protected. A later public finding needs permission or independent corroboration.':'The original claim has a documented source scope.'}</p><p>${r.auditCorrect?'The evidence check identified the defensible conclusion.':'The audit record preserves the unsupported inference; the finding cannot be represented as qualified.'}</p><div class="s43-actions">${btn('Replay this case without duplicate credits','replay','','s43-primary')}${btn('Open case notebook','tab','notebook')}${nav('Return to this destination',current)}</div>`;}
+// Surface the paired-source pay-off where the player completes a relevant
+// investigation. These links only navigate existing cross-exam scenes; they
+// never fabricate an unfiled source or change a saved answer/reward.
+if(r.stage===3){
+ const related=CROSS.filter(x=>x.pages.includes(current));
+ if(related.length){
+  html+='<section class="s43-linked"><h4>Connect this finding to another service</h4><p>Some investigations become more useful when two independent source files are considered together.</p>';
+  for(const x of related){
+   const peer=x.pages.find(page=>page!==current),ready=complete(s.cases[peer]||{});
+   const record=s.cross?.[x.id],filed=record?.stage===2&&crossCurrent(x,s,record);
+   html+=`<div class="s43-record"><strong>${escape(x.title)}</strong><p>${ready?(filed?'Both source reports and their comparison are filed.':'Both source reports are filed. The combined claim can now be examined.'):'The companion report is not filed yet. Examine that source before drawing a joint conclusion.'}</p><div class="s43-actions">${btn(filed?'Review combined finding':ready?'Compare both reports':'Preview the paired investigation','cross-open',x.id,'s43-primary')}${nav('Visit '+peer,peer)}</div></div>`;
+  }
+  html+='</section>';
+ }
+}
+const following=Data.cases[(c.index+1)%Data.cases.length];html+=`<hr/><div class="s43-next"><strong>Next suggested location:</strong> ${escape(following.title)} ${nav('Investigate '+following.page,following.page)}</div>`;
+return html;
+}
+function renderBoard(){const s=read(),pr=progress();let h=`<h3>Forty-Four Investigations</h3><p>Each destination has an authored three-decision micro-mission. Solve an evidence question, choose what to disclose, and keep a local record. A four-case department opens a concluding policy dilemma.</p><div class="s43-metrics"><div><strong>${pr.done} / 44</strong><span>Filed cases</span></div><div><strong>${pr.departments} / 11</strong><span>Department dossiers</span></div><div><strong>${Object.keys(s.items||{}).length}</strong><span>Exhibits examined</span></div><div><strong>${pr.cross} / ${CROSS.length}</strong><span>Cross-case findings</span></div></div><div class="s43-actions">${btn('Compare evidence across services','tab','cross','s43-primary')}</div><label for="s43-board-search">Find a case, location or department</label><input id="s43-board-search" type="search" autocomplete="off" placeholder="Search 44 investigations" value="${escape(boardFilter)}"><p id="s43-board-status" role="status"></p>`;
+for(const g of groups){const done=groupDone(g),rec=s.departments[g.id];h+=`<section class="s43-department" data-s43-group="${escape((g.title+' '+g.id).toLowerCase())}"> <div class="s43-dept-head"><h4>${escape(g.title)}</h4><span>${done}/4</span></div><p>${escape(g.insight)}</p><div class="s43-page-list">${g.pages.map(p=>{const c=caseFor(p),r=s.cases[p]||{};return `<div class="s43-entry" data-s43-entry data-s43-search="${escape((c.title+' '+p+' '+c.issue).toLowerCase())}"><span>${complete(r)?'✓':r.stage?'◔':'○'} ${escape(c.title)}</span><span>${btn('Open','choose-case',p)}${nav('Page',p)}</span></div>`;}).join('')}</div>${done===4&&!rec?btn('Convene department review','department',g.id,'s43-primary'):rec?`<p class="s43-outcome">Dossier filed: ${escape(rec.decision)} · ${escape(rec.quality||'Unverified legacy dossier')}. ${escape(g.insight)}</p>${btn('Review / revise dossier','department',g.id)}`:'<p class="s43-muted">Complete all four local case files to convene the department.</p>'}</section>`;}
+if(pr.departments===11){h+=`<section class="s43-department"><h4>CONTINUE — Final Internal Recommendation</h4><p>All eleven departments have filed local reports. Choose what you would recommend to a fictional, properly authorized council. <strong>This does not adopt any of the four actual Episode 09 endings.</strong></p>${s.policy?`<p class="s43-outcome">Recorded recommendation: ${escape(s.policy)}</p>${btn('Reconsider recommendation','policy','','s43-primary')}`:btn('Open internal recommendation','policy','','s43-primary')}</section>`;}
+return h;}
+function filterBoard(){if(!dialog?.open||tab!=='board')return;const q=boardFilter.trim().toLowerCase();let shown=0;for(const group of dialog.querySelectorAll('[data-s43-group]')){const titleMatch=(group.dataset.s43Group||'').includes(q);let any=false;for(const item of group.querySelectorAll('[data-s43-entry]')){const visible=!q||titleMatch||(item.dataset.s43Search||'').includes(q);item.hidden=!visible;if(visible){shown++;any=true;}}group.hidden=!!q&&!any;}const status=dialog.querySelector('#s43-board-status');if(status)status.textContent=q?`${shown} matching destinations`:'Showing all 44 destinations';}
+
+function renderCrossBoard(){
+ const s=read(),count=progress().cross;
+ let html=`<h3>Cross-Examinations</h3><p>Eight confrontations connect evidence from different destinations. Both original case reports must be filed before you can compare them. A correct synthesis is still limited by the quality of its sources; it does not grant governance authority.</p><p class="s43-outcome">${count} / ${CROSS.length} current findings</p>`;
+ for(const x of CROSS){
+  const r=s.cross?.[x.id],ready=crossReady(x,s),valid=crossCurrent(x,s,r);
+  const status=r?.stage===2&&valid?(r.quality==='scoped'?'Defensible within the fiction':'Limited / disputed'):r?.stage>0&&!valid?'Source record changed':ready?'Ready to compare':'Awaiting source reports';
+  html+=`<section class="s43-record s43-cross-entry"><h4>${escape(x.title)}</h4><p>${escape(x.issue)}</p><p class="s43-muted">Evidence: ${x.pages.map(p=>`${escape(caseFor(p).title)} (${complete(s.cases[p]||{})?'filed':'pending'})`).join(' · ')}</p><p class="s43-outcome">${escape(status)}</p><div class="s43-actions">${btn(ready?'Open comparison':'Preview and locate evidence','cross-open',x.id,'s43-primary')}${x.pages.map(p=>nav('Visit '+p,p)).join('')}</div></section>`;
+ }
+ return html;
+}
+function renderCrossDetail(){
+ const x=crossFor(crossId);if(!x)return renderCrossBoard();
+ const s=read(),r=s.cross?.[x.id],ready=crossReady(x,s),valid=crossCurrent(x,s,r);
+ let html=`<header class="s43-case-head"><p class="s43-kicker">CROSS-SERVICE INVESTIGATION</p><h3>${escape(x.title)}</h3><p>${escape(x.issue)}</p></header><p class="s43-muted">Witness: ${escape(x.witness)}. Read the two independently filed local reports. Do not infer facts beyond their scope.</p>`;
+ for(const p of x.pages){
+  const c=caseFor(p),q=s.cases[p]||{};
+  html+=`<section class="s43-record"><h4>${escape(c.title)}</h4><p>${escape(c.issue)}</p><p><strong>Recorded:</strong> ${escape(complete(q)?resultLabel(q):'Not yet filed')} ${complete(q)?'· '+escape(q.disposition):''}</p>${complete(q)?`<p>${escape(c.choices[q.choice]||'Recorded path unavailable')}</p>`:''}<div class="s43-actions">${btn('Inspect original case','choose-case',p)}${nav('Visit '+p,p)}</div></section>`;
+ }
+ if(!ready)return html+'<p class="s43-info">File both local cases before submitting a comparison. Their original choices cannot be fabricated from this screen.</p>'+btn('All cross-examinations','tab','cross');
+ if(r&&r.stage>0&&!valid)return html+'<p class="s43-info">A source report changed. The previous synthesis is not current.</p>'+btn('Reopen this comparison','cross-revise','','s43-primary');
+ if(!r||r.stage===0){
+  html+=`<h4>Compare the evidence</h4><p>${escape(x.question)}</p><div class="s43-actions">${x.answers.map((a,i)=>btn(a,'cross-choice',String(i),'s43-option')).join('')}</div>`;
+ }else if(r.stage===1){
+  html+=`<p class="s43-outcome">Proposed synthesis: ${escape(x.answers[r.choice])}</p>`;
+  if(!r.correct)html+='<p>The proposed synthesis is not justified by the two reports. You can re-evaluate the evidence or file a limited, explicitly disputed conclusion.</p>'+btn('Re-examine the statements','cross-retry','','s43-primary');
+  else html+='<p>The reasoning fits the two fictional records, subject to their individual provenance and limitations.</p>';
+  html+='<h4>Choose an institutional response</h4><div class="s43-actions">'+[['publish','Publish a scoped comparison'],['mediate','Request coordinated correction'],['restrict','Preserve as restricted evidence']].map(([k,title])=>btn(title,'cross-file',k,'s43-option')).join('')+'</div>';
+ }else{
+  html+=`<p class="s43-outcome"><strong>${r.quality==='scoped'?'Scoped fictional finding':'Limited / disputed finding'}.</strong> ${escape(x.resolutions[r.decision]||'Preserved for review.')}</p><p>Source-quality check: ${r.correct?'synthesis supported':'synthesis disputed'}; ${x.pages.every(p=>s.cases[p].verified)?'both local files are appropriately qualified':'at least one underlying case has unresolved limitations'}.</p><div class="s43-actions">${btn('Reconsider comparison','cross-revise','','s43-primary')}${btn('Open notebook','tab','notebook')}</div>`;
+ }
+ return html+btn('All cross-examinations','tab','cross');
+}
+function renderNotebook(){const s=read(),items=Object.entries(s.cases).filter(([,v])=>v.stage>0),reviews=Object.entries(s.items||{});
+let html=`<h3>Your investigation journal</h3><p>Recorded observations and fictional outcomes. All records are local to this browser; they do not constitute outside verification.</p><div class="s43-actions">${btn('Copy concise report','copy-report','','s43-primary')}${btn('Explore all 44 sites','tab','board')}</div>`;
+if(!items.length&&!reviews.length)html+='<p>No case choices yet. Open a mission on any destination to begin.</p>';
+for(const [page,r] of items){const c=caseFor(page);if(!c)continue;html+=`<section class="s43-record"><h4>${escape(c.title)}</h4><p>${escape(complete(r)?resultLabel(r):'In progress')} · ${escape(page)} · ${escape(r.disposition||'not released')}</p>${r.choice!==undefined?`<p>Decision: ${escape(c.choices[r.choice])}</p>`:''}<div class="s43-actions">${btn('Revisit','choose-case',page)}${nav('Source',page)}</div></section>`;}
+for(const [groupId,rec] of Object.entries(s.departments||{})){const g=groups.find(x=>x.id===groupId);if(!g)continue;html+=`<section class="s43-record"><h4>Department: ${escape(g.title)}</h4><p>${escape(rec.decision)} · ${escape(rec.quality||'Legacy review, not requalified')}</p>${btn('Inspect / revise dossier','department',groupId)}</section>`;}
+for(const x of CROSS){const r=s.cross?.[x.id];if(!r||r.stage!==2)continue;html+=`<section class="s43-record"><h4>Cross-examination: ${escape(x.title)}</h4><p>${escape(r.quality==='scoped'?'Scoped fictional finding':'Limited / disputed')} · ${escape(r.decision)}</p>${btn('Revisit comparison','cross-open',x.id)}</section>`;}
+if(s.policy)html+=`<section class="s43-record"><h4>Advisory recommendation</h4><p>${escape(s.policy)}</p>${btn('Review recommendation','policy','','s43-primary')}</section>`;
+for(const [id,r] of reviews){html+=`<section class="s43-record"><h4>${escape(r.title)}</h4><p>${escape(r.page)} · ${escape(r.position)}</p><p>${escape(r.note||'No note entered.')}</p><div class="s43-actions">${nav('Source',r.page)}${btn('Revisit exhibit','revisit-exhibit',id)}</div></section>`;}
+return html;}
+function renderHistory(){const s=read();return `<h3>Decisions & consequences</h3><p>Events are capped at 180 entries. Replaying a mission updates that mission's local report but does not mint fictional credits or reissue original 4.0 events.</p>${s.history.length?s.history.map(x=>`<section class="s43-record"><p class="s43-kicker">${escape(x.kind)} · ${escape(x.at)}</p><h4>${escape(x.title)}</h4><p>${escape(x.detail)}</p></section>`).join(''):'<p>No decisions recorded yet.</p>'}`;}
+function renderDepartment(id){const g=groups.find(x=>x.id===id);if(!g)return renderBoard();const rec=read().departments[id];if(!rec&&groupDone(g)!==4)return renderBoard();return `<header class="s43-case-head"><p class="s43-kicker">DEPARTMENT REVIEW</p><h3>${escape(g.title)}</h3><p>${escape(g.insight)}</p></header><p>Four local case reports are available; ${g.pages.filter(p=>read().cases[p]?.auditCorrect&&read().cases[p]?.approach!=='amplify').length} have evidence checks and non-sensational handling. A dossier does not independently verify the outside world. Reopening a case invalidates its earlier dossier.</p><p>${rec?`Previous resolution: ${escape(rec.decision)} (${escape(rec.quality||'legacy')}); choose another response to revise it.`:'Select a scoped institutional response.'}</p><div class="s43-actions">${btn('Publish a scoped finding','dept-choice',id+':publish','s43-option')}${btn('Request independent review','dept-choice',id+':review','s43-option')}${btn('Keep the evidence restricted','dept-choice',id+':restrict','s43-option')}</div>`;}
+function renderPolicy(){return `<h3>CONTINUE — Internal Recommendation</h3><p>You have eleven departmental dossiers. Which coordination system would you argue for in an authorized forum?</p><p>This local memo cannot bypass Episode 09 authority or institutional consent. Review the alternatives: evidence-first ranking (verification costs); commercial engagement (attention risks); local autonomy (coordination costs); charter refounding (migration risks).</p><p>${read().policy?`Current recommendation: ${escape(read().policy)}. Selecting another option revises it and preserves the earlier decision in History.`:'Select a reasoned advisory position.'}</p><div class="s43-actions">${[['verified','Shared evidence standard'],['empire','Disclosed engagement marketplace'],['autonomy','Service-level autonomy and appeals'],['reset','Staged charter refounding']].map(([id,t])=>btn(t,'policy-choice',id,'s43-option')).join('')}</div>`;}
+function renderExhibit(){const e=exhibit;if(!e)return '<h3>Choose an exhibit</h3><p>Open a card or artifact on this page, then select Play or open the case from the inspector.</p>';const s=read(),r=s.items[e.id];return `<p class="s43-kicker">EXHIBIT INTERACTION · ${escape(e.page)}</p><h3>${escape(e.title)}</h3><p class="s43-quote">${escape(trim(e.text,600))}</p><p>How should this fictional material be handled? Choose a decision and record an optional observation.</p><div class="s43-actions">${btn('Challenge the claim','item-choice','challenge','s43-option')}${btn('Label it explicitly fictional','item-choice','fiction','s43-option')}${btn('Preserve as a contextual example','item-choice','context','s43-option')}</div><label for="s43-exhibit-note">Investigation note</label><textarea id="s43-exhibit-note" rows="3" maxlength="400" placeholder="What does the exhibit show, and what remains uncertain?">${escape(r?.note||'')}</textarea><div class="s43-actions">${btn('Save this observation','save-item-note','','s43-primary')}${btn('Continue destination mission','tab','mission')}</div>${r?`<p class="s43-outcome">Recorded: ${escape(r.position)}</p>`:''}`;}
+function render(){if(!dialog?.open)return;
+const previous=document.activeElement,oldBody=dialog.querySelector('#s43-body'),oldMenu=dialog.querySelector('#s43-menu');
+const inBody=!!oldBody?.contains(previous),inMenu=!!oldMenu?.contains(previous);
+const focusedCommand=previous?.dataset?.s43Command,focusedId=previous?.dataset?.id;
+const draft=inBody&&previous?.matches?.('input,textarea')?{id:previous.id,value:previous.value,start:previous.selectionStart,end:previous.selectionEnd}:null;
+const tabs=[['mission','Mission'],['board','44 cases'],['cross','Cross-exams'],['notebook','Notebook'],['history','History']];const p=progress();document.querySelector('#s43-launch').textContent=`Play · ${p.done}/44`;
+dialog.querySelector('#s43-menu').innerHTML=tabs.map(([id,name])=>btn(name,'tab',id,(tab===id||(id==='cross'&&tab==='cross-detail'))?'s43-selected':'')).join('');dialog.querySelector('#s43-message').textContent=message;
+const body=dialog.querySelector('#s43-body');const active=tab==='mission'?renderMission():tab==='board'?renderBoard():tab==='cross'?renderCrossBoard():tab==='cross-detail'?renderCrossDetail():tab==='notebook'?renderNotebook():tab==='history'?renderHistory():tab==='department'?renderDepartment(current):tab==='policy'?renderPolicy():tab==='exhibit'?renderExhibit():renderMission();body.innerHTML=active;if(tab==='board')filterBoard();
+if(draft){const field=[...body.querySelectorAll('input,textarea')].find(el=>el.id===draft.id);if(field){field.value=draft.value;field.focus({preventScroll:true});if(draft.start!=null&&typeof field.setSelectionRange==='function')field.setSelectionRange(draft.start,draft.end);return;}}
+if(inBody||inMenu){const region=inMenu?dialog.querySelector('#s43-menu'):body;
+const matching=focusedCommand?[...region.querySelectorAll('[data-s43-command]')].find(el=>el.dataset.s43Command===focusedCommand&&el.dataset.id===focusedId):null;
+if(matching){matching.focus({preventScroll:true});return;}
+if(inBody){const target=body.querySelector('h3,h4')||body;target.tabIndex=-1;target.focus({preventScroll:true});}
+else{const activeTab=region.querySelector('.s43-selected')||region.querySelector('[data-s43-command]');activeTab?.focus({preventScroll:true});}
+}}
+async function act(cmd,id){if(cmd==='tab'){go(id);return;}if(cmd==='choose-case'){go('mission',id);return;}if(cmd==='department'){current=id;go('department');return;}if(cmd==='policy'){go('policy');return;}if(cmd==='cross-open'){if(crossFor(id)){crossId=id;go('cross-detail');}return;}if(cmd==='revisit-exhibit'){const item=read().items[id];if(item){exhibit=item;go('exhibit')}return;}
+if(['cross-choice','cross-file','cross-retry','cross-revise'].includes(cmd)){
+ const x=crossFor(crossId);if(!x)return;
+ const src=read(),prior=src.cross?.[x.id],ready=crossReady(x,src);
+ if(!ready){message='File both source reports before evaluating their combined claims.';render();return;}
+ if(cmd==='cross-choice'){
+  const choice=Number(id);if(!Number.isInteger(choice)||choice<0||choice>=x.answers.length||prior?.stage>0)return;
+  await commit(s=>{if(!crossReady(x,s)||s.cross?.[x.id]?.stage>0)throw Error('Source records changed. Reopen the comparison.');
+   s.cross=s.cross||{};s.cross[x.id]={stage:1,choice,correct:choice===x.correct,sources:crossSources(x,s)};
+   record(s,'Cross-examination',x.title,'Compared two original case reports; the selected interpretation is on record.');});return;
+ }
+ if(cmd==='cross-file'){
+  if(!['publish','mediate','restrict'].includes(id)||prior?.stage!==1)return;
+  await commit(s=>{const r=s.cross?.[x.id];if(r?.stage!==1||!crossCurrent(x,s,r))throw Error('The source evidence changed; compare it again.');
+   r.stage=2;r.decision=id;r.quality=r.correct&&x.pages.every(p=>s.cases[p]?.verified===true)?'scoped':'limited';r.at=new Date().toISOString();
+   record(s,'Comparison filed',x.title,`${id}; ${r.quality}. ${x.resolutions[id]}`);});return;
+ }
+ if(cmd==='cross-retry'||cmd==='cross-revise'){
+  if(!prior||!crossCurrent(x,src,prior)&&cmd==='cross-retry')return;
+  await commit(s=>{s.cross=s.cross||{};const before=s.cross[x.id];if(!before)throw Error('No comparison to re-examine.');
+   if(cmd==='cross-retry'&&before.stage!==1)throw Error('Only an unfiled comparison can recheck its reasoning.');
+   s.cross[x.id]={stage:0};record(s,cmd==='cross-retry'?'Synthesis corrected':'Comparison reopened',x.title,'A new interpretation is required. Earlier history is preserved.');});return;
+ }
+ return;
+}
+if(cmd==='copy-report'){const s=read(),text=['SLOPOCALYPSE fictional case reports','No real-world verification or data collection.',...Object.entries(s.cases).filter(([,r])=>complete(r)).map(([p,r])=>`${p}: ${resultLabel(r)}, ${r.disposition||''}`),...Object.entries(s.departments).map(([k,r])=>`Dossier ${k}: ${r.decision}`),...CROSS.filter(x=>s.cross?.[x.id]?.stage===2&&crossCurrent(x,s,s.cross[x.id])).map(x=>`Cross examination ${x.title}: ${s.cross[x.id].decision}, ${s.cross[x.id].quality}`)].join('\n');try{await navigator.clipboard.writeText(text);message='Copied the local fictional case summary.';}catch(_){message='Clipboard permission unavailable. Select text in the notebook instead.';}render();return;}
+const c=caseFor(current),r=entry(current),choiceIdx=Number(id);
+if(cmd==='choose'){if(current!==PAGE){message='Visit the source page to make this decision.';render();return;}if(!c||r.stage!==0||!Number.isInteger(choiceIdx)||choiceIdx<0||choiceIdx>2)return;await commit(s=>{const prior=s.cases[current];if(prior&&prior.stage!==0)throw Error('Case already advanced on another tab. Reopen it.');s.cases[current]={stage:1,choice:choiceIdx};record(s,'Decision',c.title,c.choices[choiceIdx]);});return;}
+if(cmd==='answer'){if(!c||r.stage!==1||!Number.isInteger(choiceIdx)||choiceIdx<0||choiceIdx>2)return;await commit(s=>{if(s.cases[current]?.stage!==1)throw Error('The case progressed in another tab.');s.cases[current].stage=2;s.cases[current].audit=choiceIdx;s.cases[current].auditCorrect=choiceIdx===c.correct;record(s,'Evidence',c.title,`${c.answers[choiceIdx]} · ${choiceIdx===c.correct?'supported':'unsupported inference'}`);});return;}
+if(cmd==='retry'){if(r.stage!==2)return;await commit(s=>{s.cases[current].stage=1;delete s.cases[current].audit;delete s.cases[current].auditCorrect;record(s,'Correction',c.title,'Player chose to recheck the evidence before filing.');});return;}
+if(['publish','private','review'].includes(cmd)){if(!c||r.stage!==2)return;await commit(s=>{const q=s.cases[current];if(q.stage!==2)throw Error('This case was already filed.');q.stage=3;q.disposition=cmd;q.approach=['verify','amplify','protect'][q.choice];q.verified=!!q.auditCorrect&&q.approach!=='amplify';q.clue=c.clue;q.filedAt=new Date().toISOString();record(s,'Case filed',c.title,`${cmd}; ${resultLabel(q)}`);});return;}
+if(cmd==='replay'){if(!c||r.stage!==3)return;await commit(s=>{const prior=s.cases[current];if(prior?.stage!==3)throw Error('The case was changed in another tab. Reopen it.');s.cases[current]={stage:0,priorResult:{approach:prior.approach,disposition:prior.disposition}};const g=groupFor(current);if(g&&s.departments[g.id]){delete s.departments[g.id];if(s.policy){s.policy=null;record(s,'Advisory invalidated','CONTINUE','The underlying department changed; the former advisory requires a new review.');}record(s,'Dossier invalidated',g.title,'A source case was reopened, so its four-case department review must be repeated.');}for(const x of CROSS.filter(x=>x.pages.includes(current))){if(s.cross?.[x.id]){delete s.cross[x.id];record(s,'Comparison invalidated',x.title,'Reopening an underlying case invalidated its dependent cross-service finding.');}}record(s,'Replay',c.title,'Reopened the local micro-mission; original campaign events remain unchanged.');});return;}
+if(cmd==='dept-choice'){const [groupId,decision]=id.split(':');const g=groups.find(x=>x.id===groupId);if(!g||!['publish','review','restrict'].includes(decision)||groupDone(g)!==4)return;const saved=await commit(s=>{if(g.pages.some(p=>s.cases[p]?.stage!==3))throw Error('A source case was reopened; complete it before filing this dossier.');const before=s.departments[groupId];if(before?.decision===decision)throw Error('That dossier resolution is already filed; choose a different response.');const quality=g.pages.every(p=>s.cases[p]?.auditCorrect===true&&s.cases[p]?.approach!=='amplify')?'Qualified within the simulation':'Limited; further review needed';s.departments[groupId]={decision,quality,at:new Date().toISOString(),cases:g.pages.map(p=>({page:p,status:resultLabel(s.cases[p]),filedAt:s.cases[p].filedAt}))};if(s.policy){s.policy=null;record(s,'Advisory invalidated','CONTINUE','The department changed, so its dependent advisory is no longer current.');}record(s,before?'Dossier revised':'Department dossier',g.title,`${decision}; ${quality}. ${g.insight}`);});if(saved)go('board');return;}
+if(cmd==='policy-choice'){if(Object.keys(read().departments).length!==11)return;const words={verified:'Shared evidence standard',empire:'Disclosed engagement marketplace',autonomy:'Service-level autonomy and appeals',reset:'Staged charter refounding'};if(!words[id])return;const saved=await commit(s=>{if(Object.keys(s.departments||{}).length!==11||groups.some(g=>g.pages.some(p=>s.cases[p]?.stage!==3)))throw Error('The eleven case dossiers are not currently complete.');if(s.policy===words[id])throw Error('This recommendation is already active; choose a different position to revise it.');s.policy=words[id];record(s,'Advisory only','Personal policy note',s.policy+' — not an authorized institutional ratification.');});if(saved)go('board');return;}
+if(cmd==='item-choice'){if(!exhibit||!['challenge','fiction','context'].includes(id))return;await commit(s=>{s.items[exhibit.id]={id:exhibit.id,title:exhibit.title,page:exhibit.page,text:trim(exhibit.text,650),position:id,note:s.items[exhibit.id]?.note||''};record(s,'Exhibit',exhibit.title,`Player classified as ${id}; this is a fictional content review.`);});return;}
+if(cmd==='save-item-note'){if(!exhibit)return;const note=trim(dialog.querySelector('#s43-exhibit-note')?.value,400);await commit(s=>{const p=s.items[exhibit.id]||{id:exhibit.id,page:exhibit.page,title:exhibit.title,position:'undetermined'};p.note=note;s.items[exhibit.id]=p;record(s,'Annotation',exhibit.title,'Local exhibit note updated.');});return;}
+if(cmd==='exhibit'){if(exhibit)go('exhibit');return;}}
+function openExhibit(item){if(!item)return;const data={id:trim(item.id,140)||PAGE+':exhibit',title:trim(item.title,120)||'Untitled exhibit',text:trim(item.text,650),page:safePage(item.page)||PAGE};exhibit=data;if(window.Slop42Discovery)window.Slop42Discovery.close?.();open('exhibit',data.page);}
+function enhanceCards(){for(const n of document.querySelectorAll('.s42-inspectable')){if(n.querySelector(':scope > .s43-card-play'))continue;
+ const b=document.createElement('button');b.type='button';b.className='s43-card-play';b.textContent='Play case';const title=window.Slop42Discovery?.catalog?.find(x=>x.id===n.dataset.s42Inspect)?.title||n.querySelector('h3,h2,h4')?.textContent||'this exhibit';b.setAttribute('aria-label','Play interactive investigation for '+trim(title,90));b.addEventListener('click',ev=>{ev.stopPropagation();const found=window.Slop42Discovery?.catalog?.find(x=>x.id===n.dataset.s42Inspect);if(found)openExhibit(found);else open('mission');});n.append(b);
+ }}
+function mount(){if(document.querySelector('#s43-launch'))return;
+launcher=document.createElement('button');launcher.type='button';launcher.id='s43-launch';launcher.setAttribute('aria-label','Play interactive missions across 44 fictional destinations');launcher.addEventListener('click',()=>open('mission'));document.body.append(launcher);
+dialog=document.createElement('dialog');dialog.id='s43-dialog';dialog.setAttribute('aria-labelledby','s43-title');dialog.innerHTML='<div class="s43-head"><div><p>FICTIONAL INTERACTIVE INTERNET</p><h2 id="s43-title">The Case Desk</h2></div><button type="button" id="s43-close" aria-label="Close case desk">Close</button></div><nav id="s43-menu" aria-label="Case desk sections"></nav><div id="s43-message" role="status" aria-live="polite"></div><main id="s43-body"></main><footer>Browser-local investigations only. No real profiling, payments, 4.0 rewards or institutional authority.</footer>';document.body.append(dialog);
+dialog.querySelector('#s43-close').addEventListener('click',close);dialog.addEventListener('close',()=>{lastFocus?.focus?.({preventScroll:true});});dialog.addEventListener('click',e=>{const b=e.target.closest('[data-s43-command]');if(b)act(b.dataset.s43Command,b.dataset.id||'');});dialog.addEventListener('input',e=>{if(e.target.id==='s43-board-search'){boardFilter=e.target.value.slice(0,80);filterBoard();}});
+const observer=new MutationObserver(()=>{if(scheduled)return;scheduled=true;setTimeout(()=>{scheduled=false;enhanceCards();},120);});observer.observe(document.body,{childList:true,subtree:true});enhanceCards();const p=progress();launcher.textContent=`Play · ${p.done}/44`;
+window.addEventListener('storage',e=>{if(e.key===KEY){launcher.textContent=`Play · ${progress().done}/44`;if(dialog.open)render();}});
+}
+window.Slop43={open,openExhibit,close,get state(){return structuredClone(read())},get cases(){return Data.cases},get progress(){return progress()}};
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
+})();

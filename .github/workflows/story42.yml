@@ -1,0 +1,42 @@
+name: SLOPOCALYPSE cross-app interaction qualification (PR only)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          node --check s42-discovery.js
+          node --check s41-story.js
+  interactions:
+    name: Native card and evidence interactions (${{ matrix.browser }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install native browser
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps '${{ matrix.browser }}'
+      - name: Verify interactive exhibit fixture
+        run: python tests/story42_smoke.py --browser '${{ matrix.browser }}'
+      - name: Verify native 44-page integration and story affordances
+        run: python tests/story42_real.py --browser '${{ matrix.browser }}'

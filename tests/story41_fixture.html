@@ -1,0 +1,17 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Local authored-story fixture</title><link rel="stylesheet" href="../s41.css"></head><body><main><h1>Existing 4.0 local-only simulator fixture</h1><p>Test-only stub for story UI and persistence. Not the real site.</p></main>
+<script>
+(function(){
+const KEY='slopocalypse:fictional-internet:v2';
+const make=(name,a,b,c,ending)=>({title:name,start:a,nodes:{[a]:{options:[{id:'choice1',to:b}]},[b]:{options:[{id:'choice2',to:c}]},[c]:{options:[{id:({mango:'truth',cloud:'settle',election:'independent'})[name],to:'!'+ending}]}}});
+const def={mango:make('mango','rumor','audit','hearing','verified'),cloud:make('cloud','alert','negotiation','hearing','treaty'),election:make('election','nomination','debate','ballot','fair')};
+const campaign={};for(const [id,d] of Object.entries(def)){const names=[d.start,Object.keys(d.nodes)[1],Object.keys(d.nodes)[2]];campaign[id]={status:'completed',run:0,ending:({mango:'verified',cloud:'treaty',election:'fair'})[id],decisions:[{node:names[0],option:'choice1',approved:true,support:70},{node:names[1],option:'choice2',approved:true,support:70},{node:names[2],option:({mango:'truth',cloud:'settle',election:'independent'})[id],approved:true,support:73,resolvedEnding:({mango:'verified',cloud:'treaty',election:'fair'})[id]}]};}
+const fresh=()=>({version:2,credits:1200,events:[],mails:[],phase40:{campaigns:campaign}});
+if(!localStorage.getItem(KEY))localStorage.setItem(KEY,JSON.stringify(fresh()));
+const disk=()=>JSON.parse(localStorage.getItem(KEY));
+window.SlopWorld={get state(){return disk()},mutate(fn){const s=disk();try{fn(s);localStorage.setItem(KEY,JSON.stringify(s));window.dispatchEvent(new CustomEvent('slop:world'));return true}catch(e){return false;}}};
+window.SlopWorld32={exclusive:fn=>Promise.resolve().then(fn)};
+window.Slop40={get state(){return disk().phase40},get campaigns(){return def},async start(){return true},open(){},close(){}};
+const S3='slopocalypse:internet-collapse:v3';const initial={version:3,news:[],posts:[],history:[]};if(!localStorage.getItem(S3))localStorage.setItem(S3,JSON.stringify(initial));
+window.SlopSociety={data:JSON.parse(localStorage.getItem(S3)),save(){localStorage.setItem(S3,JSON.stringify(this.data));return true}};
+})();
+</script><script src="../s41-rules.js"></script><script src="../s41-content.js"></script><script src="../s41-story.js"></script></body></html>

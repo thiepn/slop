@@ -1,0 +1,45 @@
+name: 44-page interactive micro-mission qualification (PR only)
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate forty-four authored cases and native JS syntax
+        run: |
+          node --check s43-cases.js
+          node --check s43-play.js
+          node tests/test43_contract.cjs
+  browser:
+    name: Micro-cases and original site (${{ matrix.browser }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install browser engine
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps '${{ matrix.browser }}'
+      - name: Verify replay invalidation and revisable dossier interface
+        run: python tests/story44_inline.py --browser '${{ matrix.browser }}'
+      - name: Exercise all 44 cases and 11 dossiers on a local-only site
+        run: python tests/story43_browser.py --browser '${{ matrix.browser }}'
+      - name: Audit all 44 original page card actions without mutating campaigns
+        run: python tests/story45_clickability.py --browser '${{ matrix.browser }}'
+      - name: Preserve original site functionality
+        run: python tests/story43_real.py --browser '${{ matrix.browser }}'
